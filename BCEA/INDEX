@@ -1,0 +1,69 @@
+BCEA-package            BCEA: A package for Bayesian Cost-Effectiveness
+                        Analysis
+CEriskav                Cost-effectiveness analysis including a
+                        parameter of risk aversion
+N                       Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+N.outcomes              Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+N.resources             Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+QALYs.adv               Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+QALYs.death             Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+QALYs.hosp              Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+QALYs.inf               Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+QALYs.pne               Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+Vaccine                 Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+bcea                    Bayesian Cost-Effectiveness Analysis
+c                       Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+ceac.plot               Cost Effectiveness Acceptability Curve (CEAC)
+                        plot
+ceplane.plot            Cost-effectiveness plane plot
+contour.bcea            Contour method for objects in the class "bcea"
+contour2                Specialised contour plot for objects in the
+                        class "bcea"
+cost.GP                 Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+cost.hosp               Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+cost.otc                Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+cost.time.off           Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+cost.time.vac           Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+cost.travel             Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+cost.trt1               Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+cost.trt2               Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+cost.vac                Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+e                       Bayesian model for the cost-effectiveness of
+                        influenza vaccination
+eib.plot                Expected Incremental Benefit plot
+evi.plot                Expected Value of Information plot
+ib.plot                 Incremental Benefit distribution plot
+mixedAn                 Cost-effectiveness analysis when multiple
+                        (possibly non cost-effective) interventions are
+                        present on the market
+plot.CEriskav           Summary plot of the health economic analysis
+                        when risk aversion is included
+plot.bcea               Summary plot of the health economic analysis
+plot.mixedAn            Summary plot of the health economic analysis
+                        when the mixed analysis is considered
+sim.table               Table of simulations for the health economic
+                        model
+summary.bcea            Summary method for objects in the class "bcea"
+summary.mixedAn         Summary methods for objects in the class
+                        "mixedAn" (mixed analysis)
+treats                  Bayesian model for the cost-effectiveness of
+                        influenza vaccination
