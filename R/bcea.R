@@ -379,6 +379,7 @@ list(Table=Table,names.cols=names.cols,wtp=wtp,ind.table=ind.table)
 
 
 
+
 ##############################################################################################################
 ## Plots the CE Plane
 ceplane.plot <- function(he,comparison=NULL,wtp=25000) {
@@ -425,7 +426,8 @@ if(he$n.comparisons>1 & is.null(comparison)==TRUE) {
 	# (can be extended, though --- and other might be chosen)
 	cl <- colors()
 	# choose colors: "black","blue","red","magenta","orange","purple","salmon","pink"
-	color <- cl[c(24,26,552,450,498,547,568,536)]
+	### color <- cl[c(24,26,552,450,498,547,568,536)]
+	color <- cl[floor(seq(262,340,length.out=he$n.comparators))]	# gray scale
 	plot(he$delta.e[,1],he$delta.c[,1],pch=20,cex=.35,xlim=range(he$delta.e),ylim=range(he$delta.c),
 		xlab="Effectiveness differential",ylab="Cost differential",
 		main="Cost-effectiveness plane")
@@ -535,7 +537,9 @@ if(he$n.comparisons>1) {
 	# (can be extended, though --- and other might be chosen)
 	cl <- colors()
 	# choose colors: "black","blue","red","magenta","orange","purple","salmon","pink"
-	color <- cl[c(24,26,552,450,498,547,568,536)]
+	### color <- cl[c(24,26,552,450,498,547,568,536)]
+	color <- cl[floor(seq(262,340,length.out=he$n.comparators))]	# gray scale
+	
 	plot(he$k,he$eib[,1],t="l",xlab="Willingness to pay", ylab="EIB",ylim=range(he$eib),
 		main="Expected Incremental Benefit")
 	for (j in 2:he$n.comparisons) {
@@ -567,7 +571,8 @@ if(he$n.comparisons>1) {
 	# (can be extended, though --- and other might be chosen)
 	cl <- colors()
 	# choose colors: "black","blue","red","magenta","orange","purple","salmon","pink"
-	color <- cl[c(24,26,552,450,498,547,568,536)]
+	### color <- cl[c(24,26,552,450,498,547,568,536)]
+	color <- cl[floor(seq(262,340,length.out=he$n.comparators))]	# gray scale
 	plot(he$k,he$ceac[,1],t="l",xlab="Willingness to pay",ylab="Probability of cost effectiveness",
 		ylim=c(0,1),main="Cost Effectiveness Acceptability Curve")
 	for (j in 2:he$n.comparisons) {
@@ -587,9 +592,16 @@ evi.plot <- function(he) {
 options(scipen=10)
 plot(he$k,he$evi,t="l",xlab="Willingness to pay",ylab="EVPI",
 	main="Expected Value of Information")
-if(length(he$kstar)>0) {
+if(length(he$kstar)==1) {
 points(rep(he$kstar,3),c(-10000,he$evi[he$k==he$kstar]/2,he$evi[he$k==he$kstar]),t="l",lty=2,col="dark grey")
 points(c(-10000,he$kstar/2,he$kstar),rep(he$evi[he$k==he$kstar],3),t="l",lty=2,col="dark grey")
+}
+if(length(he$kstar)>1) {
+for (i in 1:length(he$kstar)) {
+points(rep(he$kstar[i],3),c(-10000,he$evi[he$k==he$kstar[i]]/2,he$evi[he$k==he$kstar[i]]),
+	t="l",lty=2,col="dark grey")
+points(c(-10000,he$kstar[i]/2,he$kstar[i]),rep(he$evi[he$k==he$kstar[i]],3),t="l",lty=2,col="dark grey")
+}
 }
 }
 ##############################################################################################################
@@ -613,7 +625,8 @@ if(x$n.comparisons>1) {
 	# (can be extended, though --- and other might be chosen)
 	cl <- colors()
 	# choose colors: "black","blue","red","magenta","orange","purple","salmon","pink"
-	color <- cl[c(24,26,552,450,498,547,568,536)]
+	### color <- cl[c(24,26,552,450,498,547,568,536)]
+	color <- cl[floor(seq(262,340,length.out=x$n.comparators))]	# gray scale
 	plot(x$delta.e[,1],x$delta.c[,1],pch=20,cex=.35,xlim=range(x$delta.e),ylim=range(x$delta.c),
 		xlab="Effectiveness differential",ylab="Cost differential",main="Cost-effectiveness plane")
 	for (i in 2:x$n.comparisons) {
@@ -662,10 +675,16 @@ if(x$n.comparisons>1) {
 #EVPI
 plot(x$k,x$evi,t="l",xlab="Willingness to pay",ylab="EVPI",
 	main="Expected Value of \n Information")
-if(length(x$kstar)>0) {
-points(rep(x$kstar,3),c(-10000,x$evi[x$k==x$kstar]/2,x$evi[x$k==x$kstar]),
-	t="l",lty=2,col="dark grey")
+if(length(x$kstar)==1) {
+points(rep(x$kstar,3),c(-10000,x$evi[x$k==x$kstar]/2,x$evi[x$k==x$kstar]),t="l",lty=2,col="dark grey")
 points(c(-10000,x$kstar/2,x$kstar),rep(x$evi[x$k==x$kstar],3),t="l",lty=2,col="dark grey")
+}
+if(length(x$kstar)>1) {
+for (i in 1:length(x$kstar)) {
+points(rep(x$kstar[i],3),c(-10000,x$evi[x$k==x$kstar[i]]/2,x$evi[x$k==x$kstar[i]]),
+	t="l",lty=2,col="dark grey")
+points(c(-10000,x$kstar[i]/2,x$kstar[i]),rep(x$evi[x$k==x$kstar[i]],3),t="l",lty=2,col="dark grey")
+}
 }
 }
 ##############################################################################################################
@@ -1037,3 +1056,57 @@ legend("topleft",txt,col=cols,cex=.6,bty="n",lty=1)
 ##############################################################################################################
 
 
+
+
+##############################################################################################################
+multi.ce <- function(he){
+# Cost-effectiveness analysis for multiple comparison 
+# Identifies the probability that each comparator is the most cost-effective as well as the
+# cost-effectiveness acceptability frontier
+	cl <- colors()
+	# choose colors on gray scale
+	color <- cl[floor(seq(262,340,length.out=he$n.comparators))]	
+
+	rank <- most.ce <- array(NA,c(he$n.sim,length(he$k),he$n.comparators))
+	for (t in 1:he$n.comparators) {
+		for (j in 1:length(he$k)) {
+			rank[,j,t] <- apply(he$U[,j,]<=he$U[,j,t],1,sum)
+			most.ce[,j,t] <- rank[,j,t]==he$n.comparators
+		}
+	}
+
+	m.ce <- apply(most.ce,c(2,3),mean)		# Probability most cost-effective
+	ceaf <- apply(m.ce,1,max)			# Cost-effectiveness acceptability frontier
+
+# Output of the function
+	list(
+	m.ce=m.ce,ceaf=ceaf,n.comparators=he$n.comparators,k=he$k,interventions=he$interventions
+	)
+}
+##############################################################################################################
+
+
+mce.plot <- function(mce){
+	cl <- colors()
+	# choose colors on gray scale
+	color <- cl[floor(seq(262,340,length.out=mce$n.comparators))]	
+	plot(mce$k,mce$m.ce[,1],t="l",col=color[1],lwd=2,,lty=1,xlab="Willingness to pay",
+		ylab="Probability of most cost effectiveness",ylim=c(0,1),
+		main="Cost-effectiveness acceptability curve \nfor multiple comparisons")
+	for (i in 2:mce$n.comparators) {
+		points(mce$k,mce$m.ce[,i],t="l",col=color[i],lwd=2,lty=i)
+	}
+	legend("topright",mce$interventions,col=color,cex=.7,bty="n",lty=1:mce$n.comparators)
+}
+
+
+ceaf.plot <- function(mce){
+	cl <- colors()
+	# choose colors on gray scale
+	color <- cl[floor(seq(262,340,length.out=mce$n.comparators))]	
+
+	plot(mce$k,mce$ceaf,,t="l",lty=1,lwd=2,
+		ylim=c(0,1),xlab="Willingness to pay",col=color[1],
+		ylab="Probability of most cost effectiveness",
+		main="Cost-effectiveness acceptability frontier")
+}

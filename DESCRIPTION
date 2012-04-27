@@ -1,7 +1,7 @@
 Package: BCEA
 Type: Package
 Title: Bayesian Cost Effectiveness Analysis
-Version: 1.0
+Version: 1.1
 Date: 2012-04-27
 Author: Gianluca Baio
 Maintainer: Gianluca Baio <gianluca@stats.ucl.ac.uk>
@@ -12,6 +12,6 @@ Description: Produces an economic evaluation of a Bayesian model in the
         computes the most cost-effective alternative and produces
         graphical summaries and probabilistic sensitivity analysis
 License: GPL (>= 2)
-Packaged: 2012-05-13 10:23:37 UTC; gianluca
+Packaged: 2012-09-14 20:03:22 UTC; gianluca
 Repository: CRAN
-Date/Publication: 2012-05-13 14:49:30
+Date/Publication: 2012-09-15 05:13:29
