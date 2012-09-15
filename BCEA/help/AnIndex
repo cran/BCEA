@@ -4,6 +4,7 @@ bcea	bcea
 bcea.default	bcea
 c	c
 ceac.plot	ceac.plot
+ceaf.plot	ceaf.plot
 CEanalysis	bcea
 ceplane.plot	ceplane.plot
 CEriskav	CEriskav
@@ -24,9 +25,11 @@ e	e
 eib.plot	eib.plot
 evi.plot	evi.plot
 ib.plot	ib.plot
+mce.plot	mce.plot
 mixedAn	mixedAn
 mixedAn.default	mixedAn
 mixedAn.fn	mixedAn
+multi.ce	multi.ce
 N	N
 N.outcomes	N.outcomes
 N.resources	N.resources

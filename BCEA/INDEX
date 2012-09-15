@@ -25,6 +25,8 @@ c                       Bayesian model for the cost-effectiveness of
                         influenza vaccination
 ceac.plot               Cost Effectiveness Acceptability Curve (CEAC)
                         plot
+ceaf.plot               Plots the Cost-effectiveness acceptability
+                        frontier
 ceplane.plot            Cost-effectiveness plane plot
 contour.bcea            Contour method for objects in the class "bcea"
 contour2                Specialised contour plot for objects in the
@@ -52,9 +54,13 @@ e                       Bayesian model for the cost-effectiveness of
 eib.plot                Expected Incremental Benefit plot
 evi.plot                Expected Value of Information plot
 ib.plot                 Incremental Benefit distribution plot
+mce.plot                Plots the probability that each intervention is
+                        the most cost-effective
 mixedAn                 Cost-effectiveness analysis when multiple
                         (possibly non cost-effective) interventions are
                         present on the market
+multi.ce                Cost-effectiveness analysis with multiple
+                        comparison
 plot.CEriskav           Summary plot of the health economic analysis
                         when risk aversion is included
 plot.bcea               Summary plot of the health economic analysis
