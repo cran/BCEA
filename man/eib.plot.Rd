@@ -8,12 +8,15 @@ Expected Incremental Benefit plot
 Plots the Expected Incremental Benefit as a function of the willingness to pay
 }
 \usage{
-eib.plot(he)
+eib.plot(he,pos="topleft")
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{he}{
 A "bcea" object containing the results of the Bayesian modelling and the economic evaluation
+}
+  \item{pos}{
+The position of the legend to be included in the plot. Default value is "topleft", but can be changed by the user
 }
 }
 \value{

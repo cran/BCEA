@@ -8,12 +8,15 @@ Cost Effectiveness Acceptability Curve (CEAC) plot
 Produces a plot of the CEAC against the willingness to pay threshold
 }
 \usage{
-ceac.plot(he)
+ceac.plot(he,pos="bottomright")
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{he}{
 A "bcea" object containing the results of the Bayesian modelling and the economic evaluation
+}
+  \item{pos}{
+The position of the legend to be included in the plot. Default value is "topleft", but can be changed by the user (only relevant for multiple interventions, ie more than 2 interventions being compared)
 }
 }
 \value{
