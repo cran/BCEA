@@ -8,7 +8,7 @@ Specialised contour plot for objects in the class "bcea"
 Produces a scatterplot of the cost-effectiveness plane, with a contour-plot of the bivariate density of the differentials of cost (y-axis) and effectiveness (x-axis). Also adds the sustainability area (ie below the selected value of the willingness-to-pay threshold).
 }
 \usage{
-contour2(he, wtp=25000, xl=NULL, yl=NULL)
+contour2(he, wtp=25000, xl=NULL, yl=NULL, comparison=1)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -23,6 +23,9 @@ Limits on the x-axis (default=NULL, so that R will select appropriate limits)
 }
   \item{yl}{
 Limits on the y-axis (default=NULL, so that R will select appropriate limits)
+}
+  \item{comparison}{
+The comparison being plotted (default to 1). Not relevant if head-to-head comparison
 }
 }
 \value{

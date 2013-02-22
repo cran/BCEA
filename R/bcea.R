@@ -1,9 +1,10 @@
 #####################################################################################################
 ## Define Classes & Methods
-## (C) GianlucaBaio 4 January, 2012
+## v1.0. 4 January, 2012
+## v1.1. 14 September, 2012
+## v1.2. 17 September 2012
+## (C) GianlucaBaio
 ##
-bcea <- function(e,c,ref=1,interventions=NULL,Kmax=50000) UseMethod("bcea")
-
 ## Functions included
 # bcea.default
 # CEanalysis
@@ -17,9 +18,12 @@ bcea <- function(e,c,ref=1,interventions=NULL,Kmax=50000) UseMethod("bcea")
 # contour.bcea
 # contour2
 # sim.table
-
 # mixedAn
 # CEriskav 
+# multi.ce
+
+#####################################################################################################
+bcea <- function(e,c,ref=1,interventions=NULL,Kmax=50000) UseMethod("bcea")
 #####################################################################################################
 
 
@@ -32,14 +36,13 @@ bcea.default <- function(e,c,ref=1,interventions=NULL,Kmax=50000) {
 ##    or derived by postprocessing of "sim" in R. The objects (e,c) have dimension (n.sim x number of 
 ##    interventions) and contain n.sim simulated values for the measures of effectiveness and costs 
 ##    for each intervention being compared. 
-## 2. The reference intervention as a numeric value. Each intervention is a column in the matrixes e 
+## 2. The reference intervention as a numeric value. Each intervention is a column in the matrices e 
 ##    and c so if ref=1 the first column is assumed to be associated with the reference intervention. 
 ##    Intervention 1 is assumed the default reference. All others are considered comparators.
 ## 3. A string vector "interventions" including the names of the interventions. If none is provided 
 ##    then labels each as "intervention1",...,"interventionN".
 ## 4. The value Kmax which represents the maximum value for the willingness to pay parameter. If none 
 ##    is provided, then it is assumed Kmax=50000.
-## 5. The value Ktable is the wtp choosen to produce a summary table (default value = 25000)
 ##
 ## OUTPUTS:
 ## Graphs & computed values for CE Plane, ICER, EIB, CEAC, EVPI 
@@ -108,10 +111,7 @@ if(n.comparisons==1) {
 	ICER <- mean(delta.c)/mean(delta.e)
 }
 if(n.comparisons>1) {
-	ICER <- numeric()
-	for (i in 1:n.comparisons) {
-		ICER[i] <- mean(delta.c[,i])/mean(delta.e[,i])
-	}
+	ICER <- apply(delta.c,2,mean)/apply(delta.e,2,mean)
 }
 
 
@@ -422,11 +422,7 @@ if(he$n.comparisons==1) {
 	text(x.pt,y.pt,parse(text=t1),cex=.8,pos=4)
 }
 if(he$n.comparisons>1 & is.null(comparison)==TRUE) { 
-	# select the possible colors --- maximum number of comparisons equal to 8 
-	# (can be extended, though --- and other might be chosen)
 	cl <- colors()
-	# choose colors: "black","blue","red","magenta","orange","purple","salmon","pink"
-	### color <- cl[c(24,26,552,450,498,547,568,536)]
 	color <- cl[floor(seq(262,340,length.out=he$n.comparators))]	# gray scale
 	plot(he$delta.e[,1],he$delta.c[,1],pch=20,cex=.35,xlim=range(he$delta.e),ylim=range(he$delta.c),
 		xlab="Effectiveness differential",ylab="Cost differential",
@@ -451,8 +447,9 @@ if(he$n.comparisons>1 & is.null(comparison)==FALSE) {
 	y.pt <- ifelse(x.pt*wtp<m.c,m.c,x.pt*wtp)
 	xx <- seq(100*m.c/wtp,100*M.c/wtp,step)
 	yy <- xx*wtp
-	xx[which(xx==min(xx))] <- ifelse(min(xx)<m.e,xx[which(xx==min(xx))],2*m.e)
-	yy[which(yy==min(yy))] <- ifelse(min(yy)<m.c,yy[which(yy==min(yy))],2*m.c)
+	xx[1] <- ifelse(min(xx)<m.e,xx[1],2*m.e)
+	yy[1] <- ifelse(min(yy)<m.c,yy[1],2*m.c)
+	xx[length(xx)] <- ifelse(xx[length(xx)]<M.e,1.5*M.e,xx[length(xx)])
 	plot(xx,yy,col="white",xlim=c(m.e,M.e),ylim=c(m.c,M.c),
 		xlab="Effectiveness differential",ylab="Cost differential",
 		main=paste("Cost effectiveness plane \n",
@@ -460,7 +457,6 @@ if(he$n.comparisons>1 & is.null(comparison)==FALSE) {
 	polygon(c(min(xx),seq(min(xx),max(xx),step),max(xx)),
 		c(min(yy),wtp*seq(min(xx),max(xx),step),min(yy)),
 		col="grey95",border="black")
-#	polygon(c(xx,xx),c(yy,rev(yy)),col="grey95",border="black")
 	axis(1); axis(2); box()
 	points(he$delta.e[,comparison],he$delta.c[,comparison],pch=20,cex=.35,col="grey55")
 	abline(h=0,col="dark grey")
@@ -522,7 +518,7 @@ abline(v=0,col="black")
 
 ##############################################################################################################
 ## Plots the EIB
-eib.plot <- function(he) {
+eib.plot <- function(he,pos="topleft") {
 options(scipen=10)
 if(he$n.comparisons==1) {
 	plot(he$k,he$eib,t="l",xlab="Willingness to pay", ylab="EIB", main="Expected Incremental Benefit")
@@ -533,17 +529,17 @@ if(he$n.comparisons==1) {
 	}
 }
 if(he$n.comparisons>1) {
-	# select the possible colors --- maximum number of comparisons equal to 8 
-	# (can be extended, though --- and other might be chosen)
-	cl <- colors()
-	# choose colors: "black","blue","red","magenta","orange","purple","salmon","pink"
-	### color <- cl[c(24,26,552,450,498,547,568,536)]
-	color <- cl[floor(seq(262,340,length.out=he$n.comparators))]	# gray scale
+	color <- rep(1,he$n.comparisons); lwd <- 1
+	if (he$n.comparisons>6) {
+		cl <- colors()
+		color <- cl[floor(seq(262,340,length.out=he$n.comparators))]	# gray scale
+		lwd <- 1.5
+	}
 	
 	plot(he$k,he$eib[,1],t="l",xlab="Willingness to pay", ylab="EIB",ylim=range(he$eib),
-		main="Expected Incremental Benefit")
+		main="Expected Incremental Benefit",lty=1,lwd=lwd)
 	for (j in 2:he$n.comparisons) {
-		points(he$k,he$eib[,j],t="l",col=color[j])
+		points(he$k,he$eib[,j],t="l",col=color[j],lty=j,lwd=lwd)
 	}
 	abline(h=0,col="grey")
 	if(length(he$kstar)>0) {
@@ -551,7 +547,7 @@ if(he$n.comparisons>1) {
 		text(he$kstar,min(range(he$eib)),paste("k* = ",he$kstar,sep=""))
 	}
 	text <- paste(he$interventions[he$ref]," vs ",he$interventions[he$comp])
-	legend("topleft",text,col=color,cex=.7,bty="n",lty=1)
+	legend(pos,text,col=color,cex=.7,bty="n",lty=1:he$n.comparisons)
 }
 }
 ##############################################################################################################
@@ -560,26 +556,27 @@ if(he$n.comparisons>1) {
 
 ##############################################################################################################
 ## Plots the CEAC
-ceac.plot <- function(he) {
+ceac.plot <- function(he,pos="bottomright") {
 options(scipen=10)
 if(he$n.comparisons==1) {
 	plot(he$k,he$ceac,t="l",xlab="Willingness to pay",ylab="Probability of cost effectiveness",
 		ylim=c(0,1),main="Cost Effectiveness Acceptability Curve")
 }
 if(he$n.comparisons>1) {
-	# select the possible colors --- maximum number of comparisons equal to 8 
-	# (can be extended, though --- and other might be chosen)
-	cl <- colors()
-	# choose colors: "black","blue","red","magenta","orange","purple","salmon","pink"
-	### color <- cl[c(24,26,552,450,498,547,568,536)]
-	color <- cl[floor(seq(262,340,length.out=he$n.comparators))]	# gray scale
+	color <- rep(1,he$n.comparisons); lwd <- 1
+	if (he$n.comparisons>6) {
+		cl <- colors()
+		color <- cl[floor(seq(262,340,length.out=he$n.comparators))]	# gray scale
+		lwd <- 1.5
+	}
+
 	plot(he$k,he$ceac[,1],t="l",xlab="Willingness to pay",ylab="Probability of cost effectiveness",
-		ylim=c(0,1),main="Cost Effectiveness Acceptability Curve")
+		ylim=c(0,1),main="Cost Effectiveness Acceptability Curve",lty=1,lwd=lwd)
 	for (j in 2:he$n.comparisons) {
-		points(he$k,he$ceac[,j],t="l",col=color[j])
+		points(he$k,he$ceac[,j],t="l",col=color[j],lty=j,lwd=lwd)
 	}
 	text <- paste(he$interventions[he$ref]," vs ",he$interventions[he$comp])
-	legend("bottomright",text,col=color,cex=.7,bty="n",lty=1)
+	legend(pos,text,col=color,cex=.7,bty="n",lty=1:he$n.comparisons)
 }
 }
 ##############################################################################################################
@@ -611,81 +608,12 @@ points(c(-10000,he$kstar[i]/2,he$kstar[i]),rep(he$evi[he$k==he$kstar[i]],3),t="l
 ##############################################################################################################
 ## Plots the main health economics outcomes in just one graph
 plot.bcea <- function(x,...) {
-options(scipen=10)
-par(mfrow=c(2,2))
-#CE Plane
-if(x$n.comparisons==1) {
-	plot(x$delta.e,x$delta.c,pch=20,cex=.35,xlim=range(x$delta.e),ylim=range(x$delta.c),
-		xlab="Effectiveness differential",ylab="Cost differential",main="Cost-effectiveness plane")
-	abline(h=0,col="dark grey")
-	abline(v=0,col="dark grey")
-}
-if(x$n.comparisons>1) { 
-	# select the possible colors --- maximum number of comparisons equal to 8 
-	# (can be extended, though --- and other might be chosen)
-	cl <- colors()
-	# choose colors: "black","blue","red","magenta","orange","purple","salmon","pink"
-	### color <- cl[c(24,26,552,450,498,547,568,536)]
-	color <- cl[floor(seq(262,340,length.out=x$n.comparators))]	# gray scale
-	plot(x$delta.e[,1],x$delta.c[,1],pch=20,cex=.35,xlim=range(x$delta.e),ylim=range(x$delta.c),
-		xlab="Effectiveness differential",ylab="Cost differential",main="Cost-effectiveness plane")
-	for (i in 2:x$n.comparisons) {
-		points(x$delta.e[,i],x$delta.c[,i],pch=20,cex=.35,col=color[i])
-	}
-	abline(h=0,col="dark grey")
-	abline(v=0,col="dark grey")
-	text <- paste(x$interventions[x$ref]," vs ",x$interventions[x$comp])
-	legend("topright",text,col=color,cex=.7,bty="n",lty=1)
-}
-#EIB
-if(x$n.comparisons==1) {
-	plot(x$k,x$eib,t="l",xlab="Willingness to pay", ylab="EIB", main="Expected Incremental Benefit")
-	abline(h=0,col="grey")
-	if(length(x$kstar)>0) {
-		abline(v=x$kstar,col="dark grey",lty="dotted")
-		text(x$kstar,min(range(x$eib)),paste("k = ",x$kstar,sep=""))
-	}
-}
-if(x$n.comparisons>1) {
-	plot(x$k,x$eib[,1],t="l",xlab="Willingness to pay", ylab="EIB",ylim=range(x$eib),
-		main="Expected Incremental Benefit")
-	for (j in 2:x$n.comparisons) {
-		points(x$k,x$eib[,j],t="l",col=color[j])
-	}
-	abline(h=0,col="grey")
-	if(length(x$kstar)>0) {
-		abline(v=x$kstar,col="dark grey",lty="dotted")
-		text(x$kstar,min(range(x$eib)),paste("k = ",x$kstar,sep=""))
-	}
-	legend("topleft",text,col=color,cex=.7,bty="n",lty=1)
-}
-#CEAC
-if(x$n.comparisons==1) {
-	plot(x$k,x$ceac,t="l",xlab="Willingness to pay",ylab="Probability of cost effectiveness",
-		ylim=c(0,1),main="Cost Effectiveness \n Acceptability Curve")
-}
-if(x$n.comparisons>1) {
-	plot(x$k,x$ceac[,1],t="l",xlab="Willingness to pay",ylab="Probability of cost effectiveness",
-		ylim=c(0,1),main="Cost Effectiveness \n Acceptability Curve")
-	for (j in 2:x$n.comparisons) {
-		points(x$k,x$ceac[,j],t="l",col=color[j])
-	}
-	legend("bottomright",text,col=color,cex=.7,bty="n",lty=1)
-}
-#EVPI
-plot(x$k,x$evi,t="l",xlab="Willingness to pay",ylab="EVPI",
-	main="Expected Value of \n Information")
-if(length(x$kstar)==1) {
-points(rep(x$kstar,3),c(-10000,x$evi[x$k==x$kstar]/2,x$evi[x$k==x$kstar]),t="l",lty=2,col="dark grey")
-points(c(-10000,x$kstar/2,x$kstar),rep(x$evi[x$k==x$kstar],3),t="l",lty=2,col="dark grey")
-}
-if(length(x$kstar)>1) {
-for (i in 1:length(x$kstar)) {
-points(rep(x$kstar[i],3),c(-10000,x$evi[x$k==x$kstar[i]]/2,x$evi[x$k==x$kstar[i]]),
-	t="l",lty=2,col="dark grey")
-points(c(-10000,x$kstar[i]/2,x$kstar[i]),rep(x$evi[x$k==x$kstar[i]],3),t="l",lty=2,col="dark grey")
-}
-}
+	options(scipen=10)
+	par(mfrow=c(2,2))
+	ceplane.plot(x)
+	eib.plot(x)
+	ceac.plot(x)
+	evi.plot(x)
 }
 ##############################################################################################################
 
@@ -721,13 +649,15 @@ plot(x$delta.e,x$delta.c,pch=20,cex=.3,col="dark grey",xlab="Effectiveness diffe
 	x$interventions[x$ref]," vs ",x$interventions[x$comp],sep=""),xlim=c(m.e,M.e),ylim=c(m.c,M.c))
 abline(h=0,col="dark grey")
 abline(v=0,col="dark grey")
-if (is.null(levels)==FALSE){
-	# Normalise the density and use levels in the contour
-	density$z <- (density$z-min(density$z))/(max(density$z)-min(density$z))
-	contour(density$x,density$y,density$z,add=TRUE,levels=levels,drawlabels=TRUE)
-}
-if (is.null(levels)==TRUE) {
-	contour(density$x,density$y,density$z,add=TRUE,nlevels=nlevels,drawlabels=FALSE)
+if(any(is.na(density$z))==FALSE) {
+	if (is.null(levels)==FALSE){
+		# Normalise the density and use levels in the contour
+		density$z <- (density$z-min(density$z))/(max(density$z)-min(density$z))
+		contour(density$x,density$y,density$z,add=TRUE,levels=levels,drawlabels=TRUE)
+	}
+	if (is.null(levels)==TRUE) {
+		contour(density$x,density$y,density$z,add=TRUE,nlevels=nlevels,drawlabels=FALSE)
+	}
 }
 t1 <- paste("Pr(Delta[e]>0, Delta[c]>0)==",format(p.ne,digits=4,nsmall=3),sep="")
 text(offset*M.e,offset*M.c,parse(text=t1),cex=.8,pos=2)
@@ -763,14 +693,16 @@ plot(x$delta.e[,comparison],x$delta.c[,comparison],pch=20,cex=.3,col="dark grey"
 		x$interventions[x$comp[comparison]],sep=""),xlim=c(m.e,M.e),ylim=c(m.c,M.c))	
 abline(h=0,col="dark grey")
 abline(v=0,col="dark grey")
-contour(density$x,density$y,density$z,add=TRUE,drawlabels=TRUE)
-if (is.null(levels)==FALSE){
-	# Normalise the density and use levels in the contour
-	density$z <- (density$z-min(density$z))/(max(density$z)-min(density$z))
-	contour(density$x,density$y,density$z,add=TRUE,levels=levels,drawlabels=TRUE)
-}
-if (is.null(levels)==TRUE) {
-	contour(density$x,density$y,density$z,add=TRUE,nlevels=nlevels,drawlabels=FALSE)
+if(any(is.na(density$z))==FALSE) {
+	contour(density$x,density$y,density$z,add=TRUE,drawlabels=TRUE)
+	if (is.null(levels)==FALSE){
+		# Normalise the density and use levels in the contour
+		density$z <- (density$z-min(density$z))/(max(density$z)-min(density$z))
+		contour(density$x,density$y,density$z,add=TRUE,levels=levels,drawlabels=TRUE)
+	}
+	if (is.null(levels)==TRUE) {
+		contour(density$x,density$y,density$z,add=TRUE,nlevels=nlevels,drawlabels=FALSE)
+	}
 }
 t1 <- paste("Pr(Delta[e]>0, Delta[c]>0)==",format(p.ne,digits=4,nsmall=3),sep="")
 text(offset*M.e,offset*M.c,parse(text=t1),cex=.8,pos=2)
@@ -786,12 +718,20 @@ text(offset*M.e,offset*m.c,parse(text=t4),cex=.8,pos=2)
 
 
 ##############################################################################################################
-contour2 <- function(he,wtp=25000,xl=NULL,yl=NULL) {
+contour2 <- function(he,wtp=25000,xl=NULL,yl=NULL,comparison=1) {
 # Forces R to avoid scientific format for graphs labels
 options(scipen=10)
 # Encodes characters so that the graph can be saved as ps or pdf
 ps.options(encoding="CP1250")
 pdf.options(encoding="CP1250")
+
+## Selects the correct values for the case of multiple comparisons
+if (he$n.comparisons>1) {
+	he$delta.e <- he$delta.e[,comparison]
+	he$delta.c <- he$delta.c[,comparison]
+	he$comp <- he$comp[comparison]
+	he$ICER <- he$ICER[comparison]
+}
 
 m.e <- range(he$delta.e)[1]
 M.e <- range(he$delta.e)[2]
@@ -1059,54 +999,53 @@ legend("topleft",txt,col=cols,cex=.6,bty="n",lty=1)
 
 
 ##############################################################################################################
-multi.ce <- function(he){
-# Cost-effectiveness analysis for multiple comparison 
-# Identifies the probability that each comparator is the most cost-effective as well as the
-# cost-effectiveness acceptability frontier
-	cl <- colors()
-	# choose colors on gray scale
-	color <- cl[floor(seq(262,340,length.out=he$n.comparators))]	
-
-	rank <- most.ce <- array(NA,c(he$n.sim,length(he$k),he$n.comparators))
-	for (t in 1:he$n.comparators) {
-		for (j in 1:length(he$k)) {
-			rank[,j,t] <- apply(he$U[,j,]<=he$U[,j,t],1,sum)
-			most.ce[,j,t] <- rank[,j,t]==he$n.comparators
-		}
-	}
-
-	m.ce <- apply(most.ce,c(2,3),mean)		# Probability most cost-effective
-	ceaf <- apply(m.ce,1,max)			# Cost-effectiveness acceptability frontier
-
-# Output of the function
-	list(
-	m.ce=m.ce,ceaf=ceaf,n.comparators=he$n.comparators,k=he$k,interventions=he$interventions
-	)
-}
-##############################################################################################################
-
-
-mce.plot <- function(mce){
-	cl <- colors()
-	# choose colors on gray scale
-	color <- cl[floor(seq(262,340,length.out=mce$n.comparators))]	
-	plot(mce$k,mce$m.ce[,1],t="l",col=color[1],lwd=2,,lty=1,xlab="Willingness to pay",
-		ylab="Probability of most cost effectiveness",ylim=c(0,1),
-		main="Cost-effectiveness acceptability curve \nfor multiple comparisons")
-	for (i in 2:mce$n.comparators) {
-		points(mce$k,mce$m.ce[,i],t="l",col=color[i],lwd=2,lty=i)
-	}
-	legend("topright",mce$interventions,col=color,cex=.7,bty="n",lty=1:mce$n.comparators)
-}
-
-
-ceaf.plot <- function(mce){
-	cl <- colors()
-	# choose colors on gray scale
-	color <- cl[floor(seq(262,340,length.out=mce$n.comparators))]	
-
-	plot(mce$k,mce$ceaf,,t="l",lty=1,lwd=2,
-		ylim=c(0,1),xlab="Willingness to pay",col=color[1],
-		ylab="Probability of most cost effectiveness",
-		main="Cost-effectiveness acceptability frontier")
-}
+###multi.ce <- function(he){
+#### Cost-effectiveness analysis for multiple comparison 
+#### Identifies the probability that each comparator is the most cost-effective as well as the
+#### cost-effectiveness acceptability frontier
+###	cl <- colors()
+###	# choose colors on gray scale
+###	color <- cl[floor(seq(262,340,length.out=he$n.comparators))]	
+###
+###	rank <- most.ce <- array(NA,c(he$n.sim,length(he$k),he$n.comparators))
+###	for (t in 1:he$n.comparators) {
+###		for (j in 1:length(he$k)) {
+###			rank[,j,t] <- apply(he$U[,j,]<=he$U[,j,t],1,sum)
+###			most.ce[,j,t] <- rank[,j,t]==he$n.comparators
+###		}
+###	}
+###	m.ce <- apply(most.ce,c(2,3),mean)		# Probability most cost-effective
+###	ceaf <- apply(m.ce,1,max)			# Cost-effectiveness acceptability frontier
+###
+#### Output of the function
+###	list(
+###	m.ce=m.ce,ceaf=ceaf,n.comparators=he$n.comparators,k=he$k,interventions=he$interventions
+###	)
+###}
+###
+###
+###mce.plot <- function(mce,pos="right"){
+###	color <- rep(1,(mce$n.comparators+1)); lwd <- 1
+###	if (mce$n.comparators>7) {
+###		cl <- colors()
+###		color <- cl[floor(seq(262,340,length.out=mce$n.comparators))]	# gray scale
+###		lwd <- 1.5
+###	}
+###
+###	plot(mce$k,mce$m.ce[,1],t="l",col=color[1],lwd=lwd,lty=1,xlab="Willingness to pay",
+###		ylab="Probability of most cost effectiveness",ylim=c(0,1),
+###		main="Cost-effectiveness acceptability curve \nfor multiple comparisons")
+###	for (i in 2:mce$n.comparators) {
+###		points(mce$k,mce$m.ce[,i],t="l",col=color[i],lwd=lwd,lty=i)
+###	}
+###	legend(pos,mce$interventions,col=color,cex=.7,bty="n",lty=1:mce$n.comparators)
+###}
+###
+###
+###ceaf.plot <- function(mce){
+###	plot(mce$k,mce$ceaf,t="l",lty=1,
+###		ylim=c(0,1),xlab="Willingness to pay",
+###		ylab="Probability of most cost effectiveness",
+###		main="Cost-effectiveness acceptability frontier")
+###}
+#################################################################################################################
