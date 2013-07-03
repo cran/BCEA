@@ -8,7 +8,8 @@ Incremental Benefit distribution plot
 Plots the distribution of the Incremental Benefit for a given value of the willingness to pay threshold, k
 }
 \usage{
-ib.plot(he, comparison = NULL, wtp = 25000, bw = nbw, n = 512, xlim = NULL)
+ib.plot(he, comparison = NULL, wtp = 25000, bw = nbw, n = 512, 
+xlim = NULL, graph=c("base","ggplot2"))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -30,9 +31,15 @@ The number of equally spaced points at which the density is to be estimated
   \item{xlim}{
 The limits of the plot on the x-axis 
 }
+  \item{graph}{
+A string used to select the graphical engine to use for plotting. Should (partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is \code{"base"}.
+}
 }
 \value{
-The function produces a plot of the distribution of the Incremental Benefit for a given value of the willingness to pay parameter. The dashed area indicates the positive part of the distribution (ie when the reference is more cost-effective than the comparator) 
+\item{ib}{
+A ggplot object containing the requested plot. Returned only if \code{graph="ggplot2"}.
+}
+The function produces a plot of the distribution of the Incremental Benefit for a given value of the willingness to pay parameter. The dashed area indicates the positive part of the distribution (ie when the reference is more cost-effective than the comparator).
 }
 \references{
 Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. Statistical Methods in Medical Research doi:10.1177/0962280211419832.
@@ -40,7 +47,7 @@ Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Econ
 Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London
 }
 \author{
-Gianluca Baio
+Gianluca Baio, Andrea Berardi
 }
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
@@ -64,9 +71,10 @@ m <- bcea(e=e,c=c,          # defines the variables of
                             #  as containing the reference intervention
       interventions=treats, # defines the labels to be associated 
                             #  with each intervention
-      Kmax=50000            # maximum value possible for the willingness 
+      Kmax=50000,           # maximum value possible for the willingness 
                             #  to pay threshold; implies that k is chosen 
                             #  in a grid from the interval (0,Kmax)
+      plot=FALSE            # inhibits graphical output
 )
 # 
 # Plots the distribution of the Incremental Benefit
@@ -74,9 +82,13 @@ ib.plot(m,        # uses the results of the economic evalaution
                   #  (a "bcea" object)
     comparison=1, # if more than 2 interventions, selects the 
                   #  pairwise comparison 
-    wtp=25000     # selects the relevant willingness 
-                  #  to pay (default: 25,000) 
+    wtp=25000,    # selects the relevant willingness 
+                  #  to pay (default: 25,000)
+    graph="base"  # uses base graphics
 )
+#
+# And the ggplot2 alternative:
+ib.plot(m, comparison=1, wtp=25000, graph="ggplot2")
 }
 
 % Add one or more standard keywords, see file 'KEYWORDS' in the

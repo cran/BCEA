@@ -12,18 +12,17 @@ A package to post-process the results of a Bayesian health economic model and pr
 \tabular{ll}{
 Package: \tab BCEA\cr
 Type: \tab Package\cr
-Version: \tab 1.1.1\cr
-Date: \tab 2013-02-22\cr
-License: \tab What GPL2 \cr
+Version: \tab 1.3-0\cr
+Date: \tab 2013-07-03\cr
+License: \tab GPL2 \cr
 LazyLoad: \tab yes\cr
 }
 Given the results of a Bayesian model (possibly based on MCMC) in the form of simulations from the posterior distributions of suitable variables of costs and clinical benefits for two or more interventions, produces a health economic evaluation. Compares one of the interventions (the "reference") to the others ("comparators"). Produces many summary and plots to analyse the results
 }
 \author{
-Gianluca Baio
+Gianluca Baio, Andrea Berardi
 
 Maintainer: Gianluca Baio <gianluca@stats.ucl.ac.uk>
-Gianluca Baio
 }
 \references{
 Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. Statistical Methods in Medical Research doi:10.1177/0962280211419832.

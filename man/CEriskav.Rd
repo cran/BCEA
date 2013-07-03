@@ -69,16 +69,18 @@ m <- bcea(e=e,c=c,          # defines the variables of
 )
 #
 # Define the vector of values for the risk aversion parameter, r, eg:
-r <- c(0.000000000001,0.005,0.020,0.035) 
+r <- c(0.0000000001,0.005,0.020,0.035) 
 #
 # Run the cost-effectiveness analysis accounting for risk aversion
+\donttest{
 cr <- CEriskav(m,     # uses the results of the economic evalaution 
-                      #  (a "bcea" object)
+                      #  (a "bcea" object) 
         r=r,          # defines the vector of values for the risk 
-                      #  aversion parameter
+                      #  aversion parameter 
         comparison=1  # if more than 2 interventions, selects the 
                       #  pairwise comparison 
-)
+) 
+}
 }
 
 % Add one or more standard keywords, see file 'KEYWORDS' in the

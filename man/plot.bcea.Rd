@@ -8,20 +8,35 @@ Summary plot of the health economic analysis
 Plots in a single graph the Cost-Effectiveness plane, the Expected Incremental Benefit, the CEAC and the EVPI
 }
 \usage{
-\method{plot}{bcea}(x,...)
+\method{plot}{bcea}(x, comparison=NULL, wtp=25000, pos=FALSE, graph=c("base","ggplot2"), ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
 \item{x}{
 A "bcea" object containing the results of the Bayesian modelling and the economic evaluation
 }
+\item{comparison}{
+Selects the comparator, in case of more than two interventions being analysed. The value is passed to \code{\link{ceplane.plot}}, \code{\link{eib.plot}} and \code{\link{ceac.plot}}.
+}
+\item{wtp}{
+The value of the willingness to pay parameter. It is passed to \code{\link{ceplane.plot}}.
+}
+\item{pos}{
+Parameter to set the position of the legend. Default as \code{FALSE} sets the legend position to the default one for each plot (see the details section), while \code{TRUE} puts it on the bottom of each plot. Changes will affect all the individual plots. Can be given in form of a string, a single logical value, or a two-element vector with the respective relative positions on the x and y axis.
+}
+\item{graph}{
+A string used to select the graphical engine to use for plotting. Should (partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is \code{"base"}.
+}
 \item{...}{
-Arguments to be passed to methods, such as graphical parameters (see 'par')
+If \code{graph="base"}, arguments to be passed to plot methods, such as graphical parameters (see \code{\link{par}}). If \code{graph="ggplot2"}, the arguments will be added to the plots if they are named theme objects, and also passed to \code{\link{ceplane.plot}} and \code{\link{eib.plot}}. Arguments like \code{size} can be supplied to the functions this way.
 }
 }
 
 \value{
-The function produces a plot with four graphical summaries of the health economic evaluation
+The function produces a plot with four graphical summaries of the health economic evaluation.
+}
+\details{
+The default position of the legend for the cost-effectiveness plane (produced by \code{\link{ceplane.plot}}) is set to \code{c(1,1.025)} overriding its default for \code{pos=FALSE}, since multiple ggplot2 plots are rendered in a slightly different way than single plots. For more information on the default positions of the legends, see the documentation for each individual plot function.
 }
 \references{
 Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. Statistical Methods in Medical Research doi:10.1177/0962280211419832.
@@ -29,7 +44,7 @@ Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Econ
 Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London
 }
 \author{
-Gianluca Baio
+Gianluca Baio, Andrea Berardi
 }
 
 
@@ -38,6 +53,7 @@ Gianluca Baio
 \seealso{
 \code{\link{bcea}},
 \code{\link{ceplane.plot}},
+\code{\link{eib.plot}},
 \code{\link{ceac.plot}},
 \code{\link{evi.plot}}
 }
@@ -55,13 +71,26 @@ m <- bcea(e=e,c=c,          # defines the variables of
                             #  as containing the reference intervention
       interventions=treats, # defines the labels to be associated 
                             #  with each intervention
-      Kmax=50000            # maximum value possible for the willingness 
+      Kmax=50000,           # maximum value possible for the willingness 
                             #  to pay threshold; implies that k is chosen 
                             #  in a grid from the interval (0,Kmax)
+      plot=FALSE            # does not produce graphical outputs
 )
 #
-# Plots the summary plots for the "bcea" object m
-plot(m)
+# Plots the summary plots for the "bcea" object m using base graphics
+plot(m,graph="base")
+
+#
+# Plots the same summary plots using ggplot2
+plot(m,graph="ggplot2")
+
+##### Example of a customized plot.bcea with ggplot2
+plot(m,
+  graph="ggplot2",                                      # use ggplot2
+  theme=theme(plot.title=element_text(size=rel(1.25))), # theme elements must have a name
+  ICER.size=1.5,                                        # hidden option in ceplane.plot
+  size=rel(2.5)                                         # modifies the size of k= labels
+)                                                       #  in ceplane.plot and eib.plot
 }
 
 % Add one or more standard keywords, see file 'KEYWORDS' in the

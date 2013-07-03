@@ -10,10 +10,10 @@ Cost-effectiveness analysis when multiple (possibly non cost-effective) interven
 Runs the cost-effectiveness analysis, but accounts for the fact that more than one intervention is present on the market 
 }
 \usage{
-mixedAn(he, mkt.shares = NULL)
+mixedAn(he, mkt.shares = NULL, plot = FALSE)
 
-\method{mixedAn}{fn}(he, mkt.shares = NULL)
-\method{mixedAn}{default}(he, mkt.shares = NULL)
+\method{mixedAn}{fn}(he, mkt.shares = NULL, plot = FALSE)
+\method{mixedAn}{default}(he, mkt.shares = NULL, plot = FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -23,6 +23,9 @@ A "bcea" object containing the results of the Bayesian modelling and the economi
   \item{mkt.shares}{
 A vector of market shares associated with the interventions. Its size is the same as the number of possible comparators. By default, assumes uniform distribution for each intervention
 }
+  \item{plot}{
+  Logical value indicating whether the function should produce graphical output, via \code{\link{plot.mixedAn}}, or not. Default is set to \code{FALSE}.
+  }
 }
 \value{
 Creates an object in the class "mixedAn" which contains the results of the health economic evaluation in the mixed analysis case
@@ -38,7 +41,7 @@ Creates an object in the class "mixedAn" which contains the results of the healt
 \item{n.comparisons}{The total number of pairwise comparisons available}
 \item{interventions}{A vector of labels for all the interventions considered}
 \item{evi}{The vector of values for the ''optimal'' Expected Value of Information, as a function of the willingness to pay}
-The function produces also a graph showing the difference between the ''optimal'' version of the EVPI (when only the most cost-effective intervention is included in the market) and the mixed strategy one (when more than one intervention is considered in the market)
+The function can also produce a graph showing the difference between the ''optimal'' version of the EVPI (when only the most cost-effective intervention is included in the market) and the mixed strategy one (when more than one intervention is considered in the market)
 }
 \references{
 Baio, G. and Russo, P. (2009).A decision-theoretic framework for the application of cost-effectiveness analysis in regulatory processes. Pharmacoeconomics 27(8), 645-655 doi:10.2165/11310250
@@ -71,16 +74,18 @@ m <- bcea(e=e,c=c,          # defines the variables of
                             #  as containing the reference intervention
       interventions=treats, # defines the labels to be associated 
                             #  with each intervention
-      Kmax=50000            # maximum value possible for the willingness 
+      Kmax=50000,           # maximum value possible for the willingness 
                             #  to pay threshold; implies that k is chosen 
                             #  in a grid from the interval (0,Kmax)
+      plot=FALSE            # inhibits graphical output
 )
 #
 ma <- mixedAn(m,        # uses the results of the mixed strategy 
                         #  analysis (a "mixedAn" object)
-       mkt.shares=NULL  # the vector of market shares can be defined 
+      mkt.shares=NULL,  # the vector of market shares can be defined 
                         #  externally. If NULL, then each of the T 
                         #  interventions will have 1/T market share
+      plot=TRUE         # produces the plots
 )
 }
 
