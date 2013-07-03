@@ -8,10 +8,10 @@ Bayesian model for the cost-effectiveness of influenza vaccination
 This data set contains the results of the Bayesian analysis used to model the clinical output and the costs associated with an influenza vaccination. 
 }
 \usage{data(Vaccine)}
-%%\format{
-%%  The format is:
-%% chr "Vaccine"
-%%}
+\format{
+  The format is:
+ chr "Vaccine"
+}
 %%\details{
 %%  ~~ If necessary, more details than the __description__ above ~~
 %%}

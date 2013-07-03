@@ -1,29 +1,27 @@
-\name{evi.plot}
-\alias{evi.plot}
+\name{ceaf.plot}
+\alias{ceaf.plot}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Expected Value of Information plot
+Plots the Cost-effectiveness acceptability frontier 
 }
 \description{
-Plots the Expected Value of Information against the willingness to pay
+Plots the cost-effectiveness acceptability frontier
 }
 \usage{
-evi.plot(he, graph=c("base","ggplot2"))
+ceaf.plot(mce, graph=c("base","ggplot2"))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{he}{
-A "bcea" object containing the results of the Bayesian modelling and the economic evaluation
-}
+  \item{mce}{
+mce is the output of the call to the function multi.ce}
   \item{graph}{
 A string used to select the graphical engine to use for plotting. Should (partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is \code{"base"}.
   }
 }
 \value{
-\item{evi}{
-A ggplot object containing the requested plot. Returned only if \code{graph="ggplot2"}.
+\item{ceaf}{
+  A ggplot object containing the plot. Returned only if \code{graph="ggplot2"}.
 }
-The function produces a plot of the Expected Value of Information as a function of the discrete grid approximation of the willingness to pay parameter. The break even point (ie the point in which the EIB=0, ie when the optimal decision changes from one intervention to another) is also showed.
 }
 \references{
 Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. Statistical Methods in Medical Research doi:10.1177/0962280211419832.
@@ -37,9 +35,7 @@ Gianluca Baio, Andrea Berardi
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 
 \seealso{
-\code{\link{bcea}},
-\code{\link{ceac.plot}},
-\code{\link{ceplane.plot}}
+\code{\link{bcea}}, \code{\link{multi.ce}}
 }
 \examples{
 # See Baio G., Dawid A.P. (2011) for a detailed description of the 
@@ -61,15 +57,19 @@ m <- bcea(e=e,c=c,          # defines the variables of
       plot=FALSE            # inhibits graphical output
 )
 #
-# Plots the Expected Value of Information for the "bcea" object m
-evi.plot(m)
-#
-# Or, using gggplot:
-evi.plot(m,graph="ggplot2")
+\donttest{
+mce <- multi.ce(m)          # uses the results of the economic analysis 
 }
-
+#
+\donttest{
+ceaf.plot(mce)              # plots the CEAF 
+}
+#
+\donttest{
+ceaf.plot(mce, graph="g")   # uses ggplot2 
+}
+}
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
 \keyword{Health economic evaluation}
-\keyword{Expected value of information}
-
+\keyword{Multiple comparison}

@@ -1,45 +1,45 @@
-\name{evi.plot}
-\alias{evi.plot}
+\name{mce.plot}
+\alias{mce.plot}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Expected Value of Information plot
+Plots the probability that each intervention is the most cost-effective
 }
 \description{
-Plots the Expected Value of Information against the willingness to pay
+Plots the probability that each of the n_int interventions being analysed is the most cost-effective.
 }
 \usage{
-evi.plot(he, graph=c("base","ggplot2"))
+mce.plot(mce,pos=c(1,0.5),graph=c("base","ggplot2"))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{he}{
-A "bcea" object containing the results of the Bayesian modelling and the economic evaluation
+  \item{mce}{
+The output of the call to the function \code{\link{multi.ce}}.
 }
+  \item{pos}{
+Parameter to set the position of the legend. Can be given in form of a string \code{(bottom|top)(right|left)} for base graphics and \code{bottom|top|left|right} for ggplot2. It can be a two-elements vector, which specifies the relative position on the x and y axis respectively, or alternatively it can be in form of a logical variable, with \code{TRUE} indicating to use the first standard and \code{FALSE} to use the second one. Default value is \code{c(1,0.5)}, that is on the right inside the plot area.
+  }
   \item{graph}{
 A string used to select the graphical engine to use for plotting. Should (partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is \code{"base"}.
   }
 }
 \value{
-\item{evi}{
+\item{mceplot}{
 A ggplot object containing the requested plot. Returned only if \code{graph="ggplot2"}.
 }
-The function produces a plot of the Expected Value of Information as a function of the discrete grid approximation of the willingness to pay parameter. The break even point (ie the point in which the EIB=0, ie when the optimal decision changes from one intervention to another) is also showed.
+}
+\author{
+Gianluca Baio, Andrea Berardi
 }
 \references{
 Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. Statistical Methods in Medical Research doi:10.1177/0962280211419832.
 
 Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London
 }
-\author{
-Gianluca Baio, Andrea Berardi
-}
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 
 \seealso{
-\code{\link{bcea}},
-\code{\link{ceac.plot}},
-\code{\link{ceplane.plot}}
+\code{\link{bcea}}
 }
 \examples{
 # See Baio G., Dawid A.P. (2011) for a detailed description of the 
@@ -61,15 +61,16 @@ m <- bcea(e=e,c=c,          # defines the variables of
       plot=FALSE            # inhibits graphical output
 )
 #
-# Plots the Expected Value of Information for the "bcea" object m
-evi.plot(m)
+mce <- multi.ce(m)          # uses the results of the economic analysis 
 #
-# Or, using gggplot:
-evi.plot(m,graph="ggplot2")
+mce.plot(mce,               # plots the probability of being the most cost-effective
+      graph="base")         #  using base graphics
+#
+mce.plot(mce,               # the same plot
+      graph="ggplot2")      #  using ggplot2 instead
 }
 
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
 \keyword{Health economic evaluation}
-\keyword{Expected value of information}
-
+\keyword{Multiple comparison}

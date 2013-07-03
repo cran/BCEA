@@ -10,9 +10,9 @@ Bayesian Cost-Effectiveness Analysis
 Cost-effectiveness analysis based on the results of a simulation model for a variable of clinical benefits (e) and of costs (c). Produces results to be post-processed to give the health economic analysis. The output is stored in an object of the class "bcea"
 }
 \usage{
-bcea(e, c, ref = 1, interventions = NULL, Kmax = 50000)
+bcea(e, c, ref = 1, interventions = NULL, Kmax = 50000, plot = FALSE)
 
-\method{bcea}{default}(e, c, ref = 1, interventions = NULL, Kmax = 50000)
+\method{bcea}{default}(e, c, ref = 1, interventions = NULL, Kmax = 50000, plot = FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -31,6 +31,9 @@ Defines the labels to be associated with each intervention. By default and if NU
   \item{Kmax}{
 Maximum value of the willingness to pay to be considered. Default value is k=50000. The willingness to pay is then approximated on a discrete grid in the interval (0,Kmax), using steps of 100, ie [0,100,200,...,Kmax-100,Kmax].
 }
+  \item{plot}{
+A logical value indicating whether the function should produce the summary plot or not.
+  }
 }
 \value{
 An object of the class "bcea" containing the following elements
@@ -79,9 +82,10 @@ m <- bcea(e=e,c=c,          # defines the variables of
                             #  as containing the reference intervention
       interventions=treats, # defines the labels to be associated 
                             #  with each intervention
-      Kmax=50000            # maximum value possible for the willingness 
+      Kmax=50000,           # maximum value possible for the willingness 
                             #  to pay threshold; implies that k is chosen 
                             #  in a grid from the interval (0,Kmax)
+      plot=TRUE          # plots the results
 )
 }
 
