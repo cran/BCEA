@@ -12,8 +12,8 @@ A package to post-process the results of a Bayesian health economic model and pr
 \tabular{ll}{
 Package: \tab BCEA\cr
 Type: \tab Package\cr
-Version: \tab 1.3-0\cr
-Date: \tab 2013-07-03\cr
+Version: \tab 2-0\cr
+Date: \tab 2013-07-27\cr
 License: \tab GPL2 \cr
 LazyLoad: \tab yes\cr
 }
