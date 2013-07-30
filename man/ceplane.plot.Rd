@@ -55,55 +55,6 @@ Gianluca Baio, Andrea Berardi
 \seealso{
 \code{\link{bcea}}
 }
-\examples{
-# See Baio G., Dawid A.P. (2011) for a detailed description of the 
-# Bayesian model and economic problem
-#
-# Load the processed results of the MCMC simulation model
-data(Vaccine)
-# 
-# Runs the health economic evaluation using BCEA
-m <- bcea(e=e,c=c,          # defines the variables of 
-                            #  effectiveness and cost
-      ref=2,                # selects the 2nd row of (e,c) 
-                            #  as containing the reference intervention
-      interventions=treats, # defines the labels to be associated 
-                            #  with each intervention
-      Kmax=50000,           # maximum value possible for the willingness 
-                            #  to pay threshold; implies that k is chosen 
-                            #  in a grid from the interval (0,Kmax)
-      plot=FALSE            # inhibits graphical output
-)
-
-### Plots the cost-effectiveness plane using base graphics
-ceplane.plot(m,      # plots the Cost-Effectiveness plane
-      comparison=1,  # if more than 2 interventions, selects the
-                     #  pairwise comparison 
-      wtp=25000,     # selects the relevant willingness to pay 
-                     #  (default: 25,000) 
-      graph="base"   # selects base graphics (default)
-)
-
-### Plots the cost-effectiveness plane using ggplot2
-ceplane.plot(m,      # plots the Cost-Effectiveness plane
-      comparison=1,  # if more than 2 interventions, selects the
-                     #  pairwise comparison 
-      wtp=25000,     # selects the relevant willingness to pay 
-                     #  (default: 25,000) 
-      graph="ggplot2"# selects ggplot2 as the graphical engine
-)
-
-### Some more options
-ceplane.plot(m,
-      graph="ggplot2",
-      pos="top",
-      size=rel(5),
-      ICER.size=1.5,
-      label.pos=FALSE,
-      opt.theme=theme(text=element_text(size=8))
-)
-}
-
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
 \keyword{Health economic evaluation}

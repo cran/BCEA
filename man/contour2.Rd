@@ -56,46 +56,6 @@ Gianluca Baio, Andrea Berardi
 \code{\link{ceplane.plot}},
 \code{\link{contour.bcea}}
 }
-\examples{
-# See Baio G., Dawid A.P. (2011) for a detailed description of the 
-# Bayesian model and economic problem
-#
-# Load the processed results of the MCMC simulation model
-data(Vaccine)
-# 
-# Runs the health economic evaluation using BCEA
-m <- bcea(e=e,c=c,          # defines the variables of 
-                            #  effectiveness and cost
-      ref=2,                # selects the 2nd row of (e,c) 
-                            #  as containing the reference intervention
-      interventions=treats, # defines the labels to be associated 
-                            #  with each intervention
-      Kmax=50000,           # maximum value possible for the willingness 
-                            #  to pay threshold; implies that k is chosen 
-                            #  in a grid from the interval (0,Kmax)
-      plot=FALSE            # inhibits graphical output
-)
-#
-# Plots the contour and scatterplot of the bivariate 
-#   distribution of (Delta_e,Delta_c)
-contour2(m,       # uses the results of the economic evalaution 
-                  #  (a "bcea" object)
-      wtp=25000,  # selects the willingness-to-pay threshold
-      xl=NULL,    # assumes default values
-      yl=NULL     # assumes default values
-)
-
-### Using ggplot2
-contour2(m,           # uses the results of the economic evalaution 
-                      #  (a "bcea" object)
-      graph="ggplot2",# selects the graphical engine
-      wtp=25000,      # selects the willingness-to-pay threshold
-      xl=NULL,        # assumes default values
-      yl=NULL,        # assumes default values
-      label.pos=FALSE # alternative position for the wtp label
-)
-}
-
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
 \keyword{Health economic evaluation}
