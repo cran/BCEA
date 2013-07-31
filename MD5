@@ -1,10 +1,11 @@
-1300aac61f54c6063fd54845dc1e0971 *DESCRIPTION
+4b7e4695aaabbeaf88af8ddc73ffb22a *DESCRIPTION
 8b54e5a89fbda3af5e077053d40bec76 *NAMESPACE
 490efb1b65b3f4ef524f9c1aae18ed6d *R/bcea.R
 64473c5ebd8bf9b4f9cfdd0a60d71321 *data/Vaccine.RData
-adbf4edab87d6e1749aec0b9341ba6c9 *man/BCEA-package.Rd
+ea9e98b16358253246955d9c86ebfebd *man/BCEA-package.Rd
 bcd43881f4626c048414fbfb200651a1 *man/CEriskav.Rd
 4a9eea30277b201a79161f792e3db35d *man/CreateInputs.Rd
+f6fbe3fd40c008b73f827d57a415daf8 *man/MCMCvaccine.Rd
 a878f97a2c6bf7fa61c78f27ef853e9c *man/N.Rd
 e1b615643a11ccf54623e4eb4ba2d5a7 *man/N.outcomes.Rd
 00689cd845bbec9a2c38abda4220fe7c *man/N.resources.Rd
