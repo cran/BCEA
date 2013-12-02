@@ -1,6 +1,5 @@
 \name{mixedAn}
 \alias{mixedAn}
-\alias{mixedAn.fn}
 \alias{mixedAn.default}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
@@ -12,7 +11,6 @@ Runs the cost-effectiveness analysis, but accounts for the fact that more than o
 \usage{
 mixedAn(he, mkt.shares = NULL, plot = FALSE)
 
-\method{mixedAn}{fn}(he, mkt.shares = NULL, plot = FALSE)
 \method{mixedAn}{default}(he, mkt.shares = NULL, plot = FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
