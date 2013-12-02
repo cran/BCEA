@@ -1,7 +1,7 @@
 \name{bcea}
 \alias{bcea}
 \alias{bcea.default}
-\alias{CEanalysis}
+%\alias{CEanalysis}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Bayesian Cost-Effectiveness Analysis

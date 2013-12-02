@@ -1,6 +1,5 @@
 \name{CEriskav}
 \alias{CEriskav}
-\alias{CEriskav.fn}
 \alias{CEriskav.default}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
@@ -12,7 +11,6 @@ Extends the standard cost-effectiveness analysis to modify the utility function 
 \usage{
 CEriskav(he, r = NULL, comparison = 1)
 
-\method{CEriskav}{fn}(he, r = NULL, comparison = 1)
 \method{CEriskav}{default}(he, r = NULL, comparison = 1)
 }
 %- maybe also 'usage' for other objects documented here.
