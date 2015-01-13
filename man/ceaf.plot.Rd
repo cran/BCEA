@@ -2,10 +2,10 @@
 \alias{ceaf.plot}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Plots the Cost-effectiveness acceptability frontier 
+Cost-Effectiveness Acceptability Frontier (CEAF) plot 
 }
 \description{
-Plots the cost-effectiveness acceptability frontier
+Produces a plot the Cost-Effectiveness Acceptability Frontier (CEAF) against the willingness to pay threshold
 }
 \usage{
 ceaf.plot(mce, graph=c("base","ggplot2"))
@@ -13,7 +13,7 @@ ceaf.plot(mce, graph=c("base","ggplot2"))
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{mce}{
-mce is the output of the call to the function multi.ce}
+The output of the call to the function \code{\link{multi.ce}}}
   \item{graph}{
 A string used to select the graphical engine to use for plotting. Should (partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is \code{"base"}.
   }
@@ -67,6 +67,14 @@ ceaf.plot(mce)              # plots the CEAF
 #
 \donttest{
 ceaf.plot(mce, graph="g")   # uses ggplot2 
+}
+
+\donttest{
+# Use the smoking cessation dataset
+data(Smoking)
+m <- bcea(e,c,ref=4,intervention=treats,Kmax=500,plot=FALSE)
+mce <- multi.ce(m)
+ceaf.plot(mce)
 }
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

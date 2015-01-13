@@ -13,7 +13,7 @@ to a set of parameters
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{x}{
-An object in the class evppi, obtained by the call to the function "evppi"
+An object in the class \code{evppi}, obtained by the call to the function \code{\link{evppi}}.
 }
   \item{pos}{
 Parameter to set the position of the legend. Can be given in form of a string \code{(bottom|top)(right|left)} for base graphics and \code{bottom|top|left|right} for ggplot2. It can be a two-elements vector, which specifies the relative position on the x and y axis respectively, or alternatively it can be in form of a logical variable, with \code{FALSE} indicating to use the default position and \code{TRUE} to place it on the bottom of the plot. Default value is \code{c(0,1)}, that is in the topleft corner inside the plot area.
@@ -22,7 +22,7 @@ Parameter to set the position of the legend. Can be given in form of a string \c
 A string used to select the graphical engine to use for plotting. Should (partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is \code{"base"}.
 }
   \item{col}{
-Sets the color for the lines depicted in the graph
+Sets the color for the lines depicted in the graph.
 }
 \item{...}{
 Arguments to be passed to methods, such as graphical parameters (see \code{\link{par}}).

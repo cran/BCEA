@@ -2,34 +2,33 @@
 \alias{ib.plot}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Incremental Benefit distribution plot
+Incremental Benefit (IB) distribution plot
 }
 \description{
-Plots the distribution of the Incremental Benefit for a given value of the willingness to pay threshold, k
+Plots the distribution of the Incremental Benefit (IB) for a given value of the willingness to pay threshold
 }
 \usage{
 ib.plot(he, comparison = NULL, wtp = 25000, bw = nbw, n = 512, 
-xlim = NULL, graph=c("base","ggplot2"))
+  xlim = NULL, graph=c("base","ggplot2"))
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{he}{
-A "bcea" object containing the results of the Bayesian modelling and the economic evaluation
+A \code{bcea} object containing the results of the Bayesian modelling and the economic evaluation.
 }
   \item{comparison}{
-In the case of multiple interventions, specifies the one to be used in comparison with the reference. Default value of NULL forces R to consider the first non-reference intervention as the comparator 
+In the case of multiple interventions, specifies the one to be used in comparison with the reference. Default value of \code{NULL} forces R to consider the first non-reference intervention as the comparator.
 }
   \item{wtp}{
-The value of the willingness to pay threshold. Default value at 25000
+The value of the willingness to pay threshold. Default value at \code{25000}.
 }
   \item{bw}{
 Identifies the smoothing bandwith used to construct the kernel estimation of the IB density.
 }
   \item{n}{
-The number of equally spaced points at which the density is to be estimated
+The number of equally spaced points at which the density is to be estimated.
 }
   \item{xlim}{
-The limits of the plot on the x-axis 
+The limits of the plot on the x-axis.
 }
   \item{graph}{
 A string used to select the graphical engine to use for plotting. Should (partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is \code{"base"}.
@@ -49,14 +48,9 @@ Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London
 \author{
 Gianluca Baio, Andrea Berardi
 }
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
 \seealso{
 \code{\link{bcea}},
 \code{\link{ib.plot}},
 \code{\link{ceplane.plot}}
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
 \keyword{Health economic evaluation}

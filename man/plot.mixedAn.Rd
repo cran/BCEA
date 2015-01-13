@@ -31,7 +31,7 @@ Arguments to be passed to methods, such as graphical parameters (see \code{\link
 
 \value{
 \item{evi}{
-A ggplot object containing the requested plot. Returned only if \code{graph="ggplot2"}.
+A ggplot object containing the plot. Returned only if \code{graph="ggplot2"}.
 }
 The function produces a graph showing the difference between the ''optimal'' version of the EVPI (when only the most cost-effective intervention is included in the market) and the mixed strategy one (when more than one intervention is considered in the market).
 }
@@ -85,7 +85,9 @@ ma <- mixedAn(m,        # uses the results of the mixed strategy
 plot(ma,graph="base")
 #
 # Or with ggplot2
+if(require(ggplot2)){
 plot(ma,graph="ggplot2")
+}
 }
 
 % Add one or more standard keywords, see file 'KEYWORDS' in the

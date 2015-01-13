@@ -1,6 +1,5 @@
 \name{multi.ce}
 \alias{multi.ce}
-%- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Cost-effectiveness analysis with multiple comparison
 }
@@ -10,21 +9,18 @@ Computes and plots the probability that each of the n_int interventions being an
 \usage{
 multi.ce(he)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{he}{
-A "bcea" object containing the results of the Bayesian modelling and the economic evaluation
+A \code{bcea} object containing the results of the Bayesian modelling and the economic evaluation.
 }
 }
 \value{
-\item{m.ce}{An matrix including the probability that each intervention is the most cost-effective for all values of the willingness to pay parameter}
+\item{m.ce}{A matrix including the probability that each intervention is the most cost-effective for all values of the willingness to pay parameter}
 \item{ceaf}{A vector containing the cost-effectiveness acceptability frontier}
 }
 \author{
 Gianluca Baio
 }
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
 
 \seealso{
 \code{\link{bcea}},
@@ -55,7 +51,5 @@ mce <- multi.ce(m           # uses the results of the economic analysis
 )
 }
 
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
 \keyword{Health economic evaluation}
 \keyword{Multiple comparison}

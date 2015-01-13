@@ -2,34 +2,34 @@
 \alias{contour.bcea}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Contour method for objects in the class "bcea"
+Contour method for objects in the class \code{bcea}
 }
 \description{
 Produces a scatterplot of the cost-effectiveness plane, with a contour-plot of the bivariate density of the differentials of cost (y-axis) and effectiveness (x-axis)
 }
 \usage{
 \method{contour}{bcea}(x, comparison = 1, scale = 0.5, nlevels = 4, levels = NULL, 
-pos = c(1,0), graph=c("base","ggplot2"), ...)
+  pos = c(1,0), graph=c("base","ggplot2"), ...)
 }
-%- maybe also 'usage' for other objects documented here.
+
 \arguments{
   \item{x}{
-A "bcea" object containing the results of the Bayesian modelling and the economic evaluation
+A \code{bcea} object containing the results of the Bayesian modelling and the economic evaluation
 }
   \item{comparison}{
 In case of more than 2 interventions being analysed, selects which plot should be made. By default the first comparison among the possible ones will be plotted. If \code{graph="ggplot2"} any subset of the possible comparisons can be selected, and \code{comparison=NULL} will yield a plot of all the possible comparisons together.
 }
   \item{scale}{
-Scales the plot as a function of the observed standard deviation
+Scales the plot as a function of the observed standard deviation.
 }
   \item{levels}{
 Numeric vector of levels at which to draw contour lines. Will be ignored using \code{graph="ggplot2"}.
 }
   \item{nlevels}{
-Number of levels to be plotted in the contour
+Number of levels to be plotted in the contour.
 }
   \item{pos}{
-Parameter to set the position of the legend. Can be given in form of a string \code{(bottom|top)(right|left)} for base graphics and \code{bottom|top|left|right} for ggplot2. It can be a two-elements vector, which specifies the relative position on the x and y axis respectively, or alternatively it can be in form of a logical variable, with \code{FALSE} indicating to use the default position and \code{TRUE} to place the legend on the bottom of the plot. Default value is \code{c(1,0)}, that is the bottomright corner inside the plot area.
+Parameter to set the position of the legend. Can be given in form of a string \code{(bottom|top)(right|left)} for base graphics and \code{bottom}, \code{top}, \code{left} or \code{right} for ggplot2. It can be a two-elements vector, which specifies the relative position on the x and y axis respectively, or alternatively it can be in form of a logical variable, with \code{FALSE} indicating to use the default position and \code{TRUE} to place the legend on the bottom of the plot. Default value is \code{c(1,0)}, that is the bottomright corner inside the plot area.
   }
   \item{graph}{
   A string used to select the graphical engine to use for plotting. Should (partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is \code{"base"}.
@@ -53,14 +53,10 @@ Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London
 Gianluca Baio, Andrea Berardi
 }
 
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
 \seealso{
 \code{\link{bcea}},
 \code{\link{ceplane.plot}},
 \code{\link{contour2}}
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
 \keyword{Health economic evaluation}
-\keyword{ Bayesian model }% __ONLY ONE__ keyword per line
+\keyword{Bayesian model}

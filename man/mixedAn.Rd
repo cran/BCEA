@@ -1,7 +1,6 @@
 \name{mixedAn}
 \alias{mixedAn}
 \alias{mixedAn.default}
-%- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Cost-effectiveness analysis when multiple (possibly non cost-effective) interventions are present on the market
 }
@@ -16,17 +15,17 @@ mixedAn(he, mkt.shares = NULL, plot = FALSE)
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{he}{
-A "bcea" object containing the results of the Bayesian modelling and the economic evaluation
+A \code{bcea} object containing the results of the Bayesian modelling and the economic evaluation.
 }
   \item{mkt.shares}{
-A vector of market shares associated with the interventions. Its size is the same as the number of possible comparators. By default, assumes uniform distribution for each intervention
+A vector of market shares associated with the interventions. Its size is the same as the number of possible comparators. By default, assumes uniform distribution for each intervention.
 }
   \item{plot}{
   Logical value indicating whether the function should produce graphical output, via \code{\link{plot.mixedAn}}, or not. Default is set to \code{FALSE}.
   }
 }
 \value{
-Creates an object in the class "mixedAn" which contains the results of the health economic evaluation in the mixed analysis case
+Creates an object in the class \code{mixedAn} which contains the results of the health economic evaluation in the mixed analysis case
 \item{Ubar}{An array with the simulations of the ''known-distribution'' mixed utilities, for each value of the discrete grid approximation of the willingness to pay parameter}
 \item{OL.star}{An array with the simulations of the distribution of the Opportunity Loss for the mixed strategy, for each value of the discrete grid approximation of the willingness to pay parameter}
 \item{evi.star}{The Expected Value of Information for the mixed strategy, for each value of the discrete grid approximation of the willingness to pay parameter}
@@ -52,8 +51,6 @@ Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London
 \author{
 Gianluca Baio
 }
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
 
 \seealso{
 \code{\link{bcea}}
@@ -87,7 +84,5 @@ ma <- mixedAn(m,        # uses the results of the mixed strategy
 )
 }
 
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
 \keyword{Health economic evaluation}
 \keyword{Mixed analysis}

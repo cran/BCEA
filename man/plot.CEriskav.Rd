@@ -11,10 +11,9 @@ Plots the EIB and the EVPI when risk aversion is included in the utility functio
 \method{plot}{CEriskav}(x, pos=c(0,1), graph=c("base","ggplot2"), ...)
 %%%plot.CEriskav(x, y, ...)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{x}{
-An object of the class "CEriskav", containing the results of the economic analysis performed accounting for a risk aversion parameter (obtained as output of the function CEriskav)
+An object of the class \code{CEriskav}, containing the results of the economic analysis performed accounting for a risk aversion parameter (obtained as output of the function \code{\link{CEriskav}}).
 }
   \item{pos}{
 Parameter to set the position of the legend. Can be given in form of a string \code{(bottom|top)(right|left)} for base graphics and \code{bottom|top|left|right} for ggplot2. It can be a two-elements vector, which specifies the relative position on the x and y axis respectively, or alternatively it can be in form of a logical variable, with \code{FALSE} indicating to use the default position and \code{TRUE} to place it on the bottom of the plot. Default value is \code{c(0,1)}, that is in the topleft corner inside the plot area.

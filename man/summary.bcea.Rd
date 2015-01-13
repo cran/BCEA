@@ -2,7 +2,7 @@
 \alias{summary.bcea}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Summary method for objects in the class "bcea"
+Summary method for objects in the class \code{bcea}
 }
 \description{
 Produces a table printout with some summary results of the health economic evaluation
@@ -14,18 +14,18 @@ Produces a table printout with some summary results of the health economic evalu
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{object}{
-A "bcea" object containing the results of the Bayesian modelling and the economic evaluation
+A \code{bcea} object containing the results of the Bayesian modelling and the economic evaluation.
 }
   \item{wtp}{
-The value of the willingness to pay threshold to be used in the summary table
+The value of the willingness to pay threshold to be used in the summary table.
 }
 \item{...}{
-Additional arguments affecting the summary produced
+Additional arguments affecting the summary produced.
 }
 }
 
 \value{
-Prints a summary table with some information on the health economic output and synthetic information on the economic measures (EIB, CEAC, EVPI)
+Prints a summary table with some information on the health economic output and synthetic information on the economic measures (EIB, CEAC, EVPI).
 }
 \references{
 Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. Statistical Methods in Medical Research doi:10.1177/0962280211419832.

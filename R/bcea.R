@@ -1,4 +1,4 @@
-#####################################################################################################
+###INTRO#############################################################################################
 ## Define Classes & Methods
 ## v1.0. 4 January, 2012
 ## v1.1. 14 September, 2012
@@ -6,37 +6,53 @@
 ## v1.3-0 June, 2013
 ## v2.0-1 July, 2013
 ## v2.0-2 November, 2013
-## (C) GianlucaBaio
-##
-## Functions included
+## v2.0-2b February, 2014 - eac.plot and eib.plot: option comparison included for base graphics
+## v2.0-2c July, 2014
+## v2.1-0-pre1 AB September, 2014: documentation updated, Smoking dataset and ceef.plot function included, additional modifications
+## v2.1.0-pre2 GB October, 2014: modifications to ceef.plot, CreateInputs, struct.psa
+## v2.1.0 AB October, 2014: migrated from if(require()) to if(requireNamespace(,quietly=TRUE)); documentation updated
+## v2.1.0 AB December, 2014: added threshold argument to ceef.plot function; documentation updated
+## (C) Gianluca Baio + contributions by Andrea Berardi & Chris Jackson
+
+###Functions included################################################################################
+#*> cat(paste0(ls(),"\n"))
+# bcea
 # bcea.default
-# CEanalysis
-# summary.bcea
-# ceplane.plot
-# ib.plot
-# eib.plot
 # ceac.plot
-# evi.plot
-# plot.bcea
+# ceaf.plot
+# ceef.plot
+# ceplane.plot
+# CEriskav
+# CEriskav.default
 # contour.bcea
 # contour2
-# sim.table
-# mixedAn
-# CEriskav 
-# multi.ce
+# CreateInputs
+# diag.evppi
+# eib.plot
+# evi.plot
 # evppi
+# evppi.default
+# ib.plot
+# mce.plot
+# mixedAn
+# mixedAn.default
+# multi.ce
 # multi.evppi
+# plot.bcea
+# plot.CEriskav
+# plot.evppi
+# plot.mixedAn
+# sim.table
 # struct.psa
+# summary.bcea
+# summary.mixedAn
 
+###bcea##############################################################################################
+bcea <- function(e,c,ref=1,interventions=NULL,Kmax=50000,wtp=NULL,plot=FALSE) UseMethod("bcea")
 
-#####################################################################################################
-bcea <- function(e,c,ref=1,interventions=NULL,Kmax=50000,plot=FALSE) UseMethod("bcea")
-#####################################################################################################
-
-
-#####################################################################################################
+###bcea.default######################################################################################
 ## Default function
-bcea.default <- function(e,c,ref=1,interventions=NULL,Kmax=50000,plot=FALSE) {
+bcea.default <- function(e,c,ref=1,interventions=NULL,Kmax=50000,wtp=NULL,plot=FALSE) {
      ## Compute a Bayesian cost-effectiveness analysis of two or more interventions
      ## INPUTS:
      ## 1. Two objects (e,c). These can be directly computed in a simulation object "sim" from JAGS/BUGS, 
@@ -50,10 +66,13 @@ bcea.default <- function(e,c,ref=1,interventions=NULL,Kmax=50000,plot=FALSE) {
      ##    then labels each as "intervention1",...,"interventionN".
      ## 4. The value Kmax which represents the maximum value for the willingness to pay parameter. If none 
      ##    is provided, then it is assumed Kmax=50000.
+     ## 5. A(n optional) vector wtp including the values of the willingness to pay grid. If not specified
+     ##    then BCEA will construct a grid of 501 values from 0 to Kmax. This option is useful when 
+     ##    performing intensive computations (eg for the EVPPI)
      ##
      ## OUTPUTS:
      ## Graphs & computed values for CE Plane, ICER, EIB, CEAC, EVPI 
-     
+        
      # Set the working directory to wherever the user is working, if not externally set
      if(!exists("working.dir")){working.dir <- getwd()}
      
@@ -70,41 +89,51 @@ bcea.default <- function(e,c,ref=1,interventions=NULL,Kmax=50000,plot=FALSE) {
      comp <- ints[-ref]
      n.comparisons <- n.comparators-1
      
-     
      # Compute Effectiveness & Cost differentials (wrt to reference intervention)
      delta.e <- e[,ref]-e[,comp]
      delta.c <- c[,ref]-c[,comp]
-     
-     
+          
      # Compute the ICER
      if(n.comparisons==1) {
           ICER <- mean(delta.c)/mean(delta.e)
      }
      if(n.comparisons>1) {
-          ICER <- apply(delta.c,2,mean)/apply(delta.e,2,mean)
+          ICER <- colMeans(delta.c)/colMeans(delta.e) #apply(delta.c,2,mean)/apply(delta.e,2,mean)
      }
      
      
      # Compute and plot CEAC & EIB
      if(!exists("Kmax")){Kmax<-50000}
-     npoints <- 500 #1000
-     step <- Kmax/npoints
-     k <- seq(0,Kmax,step)
-     K <- length(k)
+     # Lets you select the willingness to pay grid --- useful when doing EVPPI (computationally intensive)
+     if (!is.null(wtp)){
+        wtp <- sort(unique(wtp))
+        npoints <- length(wtp) - 1
+        Kmax <- max(wtp)
+        step <- wtp[2]-wtp[1]
+        k <- wtp - wtp[1]
+        K <- npoints + 1
+     }  else { 
+        npoints <- 500
+        step <- Kmax/npoints
+        k <- seq(0,Kmax,step)
+        K <- length(k)
+     }
      
      if(n.comparisons==1) {
           ib <- scale(k%*%t(delta.e),delta.c,FALSE)
-          ceac <- apply(ib>0,1,mean)
+          ceac <- rowMeans(ib>0) #apply(ib>0,1,mean)
      }
      if(n.comparisons>1) { 
-          ib <- sweep(apply(delta.e,c(1,2),function(x) k%*%t(x)),c(2,3),delta.c,"-")
+         ib <- array(rep(delta.e, K)*rep(k, each=n.sim*n.comparisons)-as.vector(delta.c),
+                    dim=c(n.sim, n.comparisons, K))
+         ib <- aperm(ib, c(3,1,2))
+###          ib <- sweep(apply(delta.e,c(1,2),function(x) k%*%t(x)),c(2,3),delta.c,"-")
           ceac <- apply(ib>0,c(1,3),mean)
      }
      
-     
      # Select the best option for each value of the willingness to pay parameter
      if(n.comparisons==1) {
-          eib <- apply(ib,1,mean)
+          eib <- rowMeans(ib)  #apply(ib,1,mean)
           best <- rep(ref,K)
           best[which(eib<0)] <- comp
           ## Finds the k for which the optimal decision changes
@@ -121,27 +150,30 @@ bcea.default <- function(e,c,ref=1,interventions=NULL,Kmax=50000,plot=FALSE) {
           kstar <- k[check!=0]
      }
      
-     
-     
      # Compute EVPI 
-     U <- aperm(sweep(apply(e,c(1,2),function(x) k%*%t(x)),c(2,3),c,"-"),c(2,1,3))
-     Ustar <- apply(U,c(1,2),max)
-     vi <- ol <- matrix(NA,n.sim,K) 
+     U <- array(rep(e, K)*rep(k, each=n.sim*n.comparators) - as.vector(c),
+                dim=c(n.sim, n.comparators, K))
+     U <- aperm(U, c(1,3,2))
+###     U <- aperm(sweep(apply(e,c(1,2),function(x) k%*%t(x)),c(2,3),c,"-"),c(2,1,3))
+###     Ustar <- apply(U,c(1,2),max)
+     rowMax <- function(x){do.call(pmax, as.data.frame(x))}
+     Ustar <- vi <- ol <- matrix(NA,n.sim,K) 
      for (i in 1:K) {
+          Ustar[,i] <- rowMax(U[,i,])
           cmd <- paste("ol[,i] <- Ustar[,i] - U[,i,",best[i],"]",sep="")
           eval(parse(text=cmd))     
           vi[,i] <- Ustar[,i] - max(apply(U[,i,],2,mean))
      }
-     evi <- apply(ol,2,mean)
-     
-     
+     evi <- colMeans(ol) #apply(ol,2,mean)
      
      ## Outputs of the function
      he <- list(
           n.sim=n.sim,n.comparators=n.comparators,n.comparisons=n.comparisons,delta.e=delta.e,
           delta.c=delta.c,ICER=ICER,Kmax=Kmax,k=k,ceac=ceac,ib=ib,eib=eib,kstar=kstar,
           best=best,U=U,vi=vi,Ustar=Ustar,ol=ol,evi=evi,interventions=interventions,
-          ref=ref,comp=comp,step=step
+          ref=ref,comp=comp,step=step,
+          ### addition for ceef.plot
+          e=e,c=c
      )
      
      class(he) <- "bcea"
@@ -149,11 +181,10 @@ bcea.default <- function(e,c,ref=1,interventions=NULL,Kmax=50000,plot=FALSE) {
           plot(he)
      return(he)
 }
-#####################################################################################################
 
 
 
-##############################################################################################################
+###summary.bcea#################################################################################################
 ## Summary of the results
 summary.bcea <- function(object,wtp=25000,...) {
      
@@ -266,11 +297,8 @@ summary.bcea <- function(object,wtp=25000,...) {
                object$interventions[object$best][object$k==wtp],"\n",sep=""))
      print(tab3,quote=F,digits=5,justify="center")
 }
-##############################################################################################################
 
-
-
-##############################################################################################################
+###sim.table##################################################################################################
 # Produce a summary table with the results of simulations for the health economic variables of interest
 sim.table <- function(he,wtp=25000) {
      
@@ -309,355 +337,371 @@ sim.table <- function(he,wtp=25000) {
      
      ## Outputs of the function
      list(Table=Table,names.cols=names.cols,wtp=wtp,ind.table=ind.table)
-     }
-##############################################################################################################
-
+}
 
 
 ##########################################ceplane.plot########################################################
 ## Plots the CE Plane
 ceplane.plot <- function(he,comparison=NULL,wtp=25000,pos=c(1,1),size=NULL,graph=c("base","ggplot2"),...) {
-     ### hidden options for ggplot2 ###
-     # ICER.size =                    # changes ICER point size
-     # label.pos = FALSE              # uses alternate position for wtp label (old specification)
-     base.graphics <- ifelse(isTRUE(pmatch(graph,c("base","ggplot2"))==2),FALSE,TRUE) 
-     alt.legend <- pos
-     
-     # Forces R to avoid scientific format for graphs labels
-     options(scipen=10)
-     
-     if(base.graphics) {
-          if(!is.null(size))
-               message("option size will be ignored using base graphics")
-          
-          if(is.numeric(alt.legend)&length(alt.legend)==2){
-               temp <- ""
-               if(alt.legend[2]==0)
-                    temp <- paste0(temp,"bottom")
-               else
-                    temp <- paste0(temp,"top")
-               if(alt.legend[1]==0)
-                    temp <- paste0(temp,"left")
-               else
-                    temp <- paste0(temp,"right")
-               alt.legend <- temp
-               if(length(grep("^(bottom|top)(left|right)$",temp))==0)
-                    alt.legend <- FALSE
-          }
-          if(is.logical(alt.legend)){
-               if(!alt.legend)
-                    alt.legend="topright"
-               else
-                    alt.legend="topleft"
-          }
-          
-          # Encodes characters so that the graph can be saved as ps or pdf
-          ps.options(encoding="CP1250")
-          pdf.options(encoding="CP1250")
-          
-          if(he$n.comparisons==1) {
-               m.e <- range(he$delta.e)[1]
-               M.e <- range(he$delta.e)[2]
-               m.c <- range(he$delta.c)[1]
-               M.c <- range(he$delta.c)[2]
-               step <- (M.e-m.e)/10
-               m.e <- ifelse(m.e<0,m.e,-m.e)
-               m.c <- ifelse(m.c<0,m.c,-m.c)
-               x.pt <- .95*m.e
-               y.pt <- ifelse(x.pt*wtp<m.c,m.c,x.pt*wtp)
-               xx <- seq(100*m.c/wtp,100*M.c/wtp,step)
-               yy <- xx*wtp
-               xx[1] <- ifelse(min(xx)<m.e,xx[1],2*m.e)
-               yy[1] <- ifelse(min(yy)<m.c,yy[1],2*m.c)
-               xx[length(xx)] <- ifelse(xx[length(xx)]<M.e,1.5*M.e,xx[length(xx)])
-               plot(xx,yy,col="white",xlim=c(m.e,M.e),ylim=c(m.c,M.c),
-                    xlab="Effectiveness differential",ylab="Cost differential",
-                    main=paste("Cost effectiveness plane \n",
-                               he$interventions[he$ref]," vs ",he$interventions[he$comp],sep=""),axes=F)
-               polygon(c(min(xx),seq(min(xx),max(xx),step),max(xx)),
-                       c(min(yy),wtp*seq(min(xx),max(xx),step),min(yy)),
-                       col="grey95",border="black")
-               #	polygon(c(xx,xx),c(yy,rev(yy)),col="grey95",border="black")
-               axis(1); axis(2); box()
-               points(he$delta.e,he$delta.c,pch=20,cex=.35,col="grey55")
-               abline(h=0,col="dark grey")
-               abline(v=0,col="dark grey")
-               text(M.e,M.c,paste("\U2022"," ICER=",format(he$ICER,digits=6,nsmall=2),sep=""),cex=.95,pos=2,col="red")
-               points(mean(he$delta.e),mean(he$delta.c),pch=20,col="red",cex=1)
-               t1 <- paste("k==",format(wtp,digits=3,nsmall=2,scientific=F),sep="")
-               text(x.pt,y.pt,parse(text=t1),cex=.8,pos=4)
-          }
-          if(he$n.comparisons>1 & is.null(comparison)==TRUE) { 
-               cl <- colors()
-               color <- cl[floor(seq(262,340,length.out=he$n.comparators))]	# gray scale
-               plot(he$delta.e[,1],he$delta.c[,1],pch=20,cex=.35,xlim=range(he$delta.e),ylim=range(he$delta.c),
-                    xlab="Effectiveness differential",ylab="Cost differential",
-                    main="Cost-effectiveness plane")
-               for (i in 2:he$n.comparisons) {
-                    points(he$delta.e[,i],he$delta.c[,i],pch=20,cex=.35,col=color[i])
-               }
-               abline(h=0,col="dark grey")
-               abline(v=0,col="dark grey")
-               text <- paste(he$interventions[he$ref]," vs ",he$interventions[he$comp])
-               legend(alt.legend,text,col=color,cex=.7,bty="n",lty=1)
-          }
-          if(he$n.comparisons>1 & is.null(comparison)==FALSE) { 
-               m.e <- range(he$delta.e[,comparison])[1]
-               M.e <- range(he$delta.e[,comparison])[2]
-               m.c <- range(he$delta.c[,comparison])[1]
-               M.c <- range(he$delta.c[,comparison])[2]
-               step <- (M.e-m.e)/10
-               m.e <- ifelse(m.e<0,m.e,-m.e)
-               m.c <- ifelse(m.c<0,m.c,-m.c)
-               x.pt <- .95*m.e
-               y.pt <- ifelse(x.pt*wtp<m.c,m.c,x.pt*wtp)
-               xx <- seq(100*m.c/wtp,100*M.c/wtp,step)
-               yy <- xx*wtp
-               xx[1] <- ifelse(min(xx)<m.e,xx[1],2*m.e)
-               yy[1] <- ifelse(min(yy)<m.c,yy[1],2*m.c)
-               xx[length(xx)] <- ifelse(xx[length(xx)]<M.e,1.5*M.e,xx[length(xx)])
-               plot(xx,yy,col="white",xlim=c(m.e,M.e),ylim=c(m.c,M.c),
-                    xlab="Effectiveness differential",ylab="Cost differential",
-                    main=paste("Cost effectiveness plane \n",
-                               he$interventions[he$ref]," vs ",he$interventions[he$comp[comparison]],sep=""),axes=F)
-               polygon(c(min(xx),seq(min(xx),max(xx),step),max(xx)),
-                       c(min(yy),wtp*seq(min(xx),max(xx),step),min(yy)),
-                       col="grey95",border="black")
-               axis(1); axis(2); box()
-               points(he$delta.e[,comparison],he$delta.c[,comparison],pch=20,cex=.35,col="grey55")
-               abline(h=0,col="dark grey")
-               abline(v=0,col="dark grey")
-               text(M.e,M.c,paste("\U2022"," ICER=",format(he$ICER[comparison],digits=6,nsmall=2),sep=""),cex=.95,pos=2,col="red")
-               points(mean(he$delta.e[,comparison]),mean(he$delta.c[,comparison]),pch=20,col="red",cex=1)
-               t1 <- paste("k==",format(wtp,digits=3,nsmall=2,scientific=F),sep="")
-               text(x.pt,y.pt,parse(text=t1),cex=.8,pos=4)
-          }
-     } #if(base.graphics)
-     else{
-          if(!isTRUE(require(ggplot2)&require(grid))){
-               message("falling back to base graphics\n")
-               ceplane.plot(he,comparison=comparison,wtp=wtp,pos=alt.legend,graph="base"); return(invisible(NULL))
-          }
-          # no visible binding note
-          delta.e <- delta.c <- NULL
-          
-          k <- he
-          rm(he)
-          
-          if(is.null(size))
-               size <- rel(3.5)
-          
-          label.pos <- TRUE
-          opt.theme <- theme()
-          ICER.size <- 2
-          exArgs <- list(...)
-          if(length(exArgs)>=1){
-               if(exists("ICER.size",where=exArgs))
-                    ICER.size <- exArgs$ICER.size
-               if(exists("label.pos",where=exArgs))
-                    if(is.logical(exArgs$label.pos))
-                         label.pos <- exArgs$label.pos
-               for(obj in exArgs)
-                    if(is.theme(obj))
-                         opt.theme <- opt.theme + obj
-          }
-          
-          if(k$n.comparisons==1) {
-               kd <- data.frame(k$delta.e,k$delta.c)
-               names(kd) <- c("delta.e","delta.c")
-               # for scale_x_continuous(oob=)
-               do.nothing=function(x,limits) return(x)
-               # plot limits
-               range.e <- range(kd$delta.e)
-               range.c <- range(kd$delta.c)
-               range.e[1] <- ifelse(range.e[1]<0,range.e[1],-range.e[1])
-               range.c[1] <- ifelse(range.c[1]<0,range.c[1],-range.c[1])
-               # ce plane data
-               x1 <- range.e[1]-2*abs(diff(range.e))
-               x2 <- range.e[2]+2*abs(diff(range.e))
-               x3 <- x2
-               x <- c(x1,x2,x3)
-               y <- x*wtp; y[3] <- x1*wtp
-               plane <- data.frame(x=x,y=y)
-               
-               # build a trapezoidal plane instead of a triangle if the y value is less than the minimum difference on costs
-               if(y[1]>1.2*range.c[1]) {
-                    plane <- rbind(plane,
-                                   c(x2,2*range.c[1]), #new bottom-right vertex
-                                   c(x1,2*range.c[1])) #new bottom-left vertex
-               }
-               
-               # actual plot
-               ceplane <- ggplot(kd, aes(delta.e,delta.c)) +
-                    theme_bw() +
-                    scale_x_continuous(limits=range.e,oob=do.nothing) + scale_y_continuous(limits=range.c,oob=do.nothing) +
-                    scale_color_manual("",labels=paste0("ICER = ",format(k$ICER,digits=6,nsmall=2),"  "),values="red") +     
-                    geom_line(data=plane[1:2,],aes(x=x,y=y),color="black",linetype=1) +
-                    geom_polygon(data=plane,aes(x=x,y=y),fill="light gray",alpha=.3) +
-                    geom_hline(aes(yintercept=0),colour="grey") + geom_vline(aes(xintercept=0),colour="grey") +
-                    geom_point(size=1,colour="grey33") +
-                    geom_point(aes(mean(delta.e),mean(delta.c),color=as.factor(1)),size=ICER.size)
-               
-               if(!label.pos) {
-                    # sposta la label di wtp se la retta di wtp intercetta o no le ordinate
-                    ceplane <- ceplane + annotate(geom="text",x=ifelse(range.c[1]/wtp>range.e[1],range.c[1]/wtp,range.e[1]),
-                                                  #y=(1+.085)*range.c[1],
-                                                  y=range.c[1],
-                                                  label=paste0("k = ",format(wtp,digits=6)),hjust=-.15,size=size)
-               }
-               else{
-                    m.e <- ifelse(range.e[1]<0,range.e[1],-range.e[1])
-                    m.c <- ifelse(range.c[1]<0,range.c[1],-range.c[1])
-                    x.pt <- .95*m.e
-                    y.pt <- ifelse(x.pt*wtp<m.c,m.c,x.pt*wtp)
-                    ceplane <- ceplane + annotate(geom="text",x=x.pt,y=y.pt,
-                                                  label=paste0("k = ",format(wtp,digits=6)),hjust=.15,size=size)
-               }
-          }
-          
-          if(k$n.comparisons>1&is.null(comparison)==TRUE) {
-               
-               # create dataframe for plotting
-               kd <- data.frame(c(k$delta.e),c(k$delta.c))
-               names(kd) <- c("delta.e","delta.c")
-               kd$comparison <- as.factor(sort(rep(1:k$n.comparisons,dim(k$delta.e)[1])))
-               
-               # dataset for ICERs
-               means.mat <- matrix(NA,nrow=k$n.comparisons,ncol=2)
-               for(i in 1:k$n.comparisons)
-                    means.mat[i,] <- colMeans(kd[kd$comparison==i,-3])
-               means <- data.frame(means.mat)
-               means$comparison <- factor(1:k$n.comparisons)
-               names(means) <- c("lambda.e","lambda.c","comparison")
-               
-               # labels for legend
-               comparisons.label <- paste0(k$interventions[k$ref]," vs ",k$interventions[k$comp])
-               # vector of values for color, take out white, get integer values
-               colors.label <- paste0("gray",round(seq(0,100,length.out=(k$n.comparisons+1))[-(k$n.comparisons+1)]))
-               
-               # polygon stuff
-               do.nothing=function(x,limits) return(x)
-               # plot limits
-               range.e <- range(kd$delta.e)
-               range.c <- range(kd$delta.c)
-               range.e[1] <- ifelse(range.e[1]<0,range.e[1],-range.e[1])
-               range.c[1] <- ifelse(range.c[1]<0,range.c[1],-range.c[1])
-               # ce plane data
-               x1 <- range.e[1]-2*abs(diff(range.e))
-               x2 <- range.e[2]+2*abs(diff(range.e))
-               x3 <- x2
-               x <- c(x1,x2,x3)
-               y <- x*wtp; y[3] <- x1*wtp
-               plane <- data.frame(x=x,y=y,comparison=factor(rep(k$n.comparisons+1,3)))
-               
-               # build a trapezoidal plane instead of a triangle if the y value is less than the minimum difference on costs
-               if(y[1]>min(kd$delta.c)) {
-                    plane <- rbind(plane,
-                                   c(x2,2*min(kd$delta.c),k$n.comparisons+1), #new bottom-right vertex
-                                   c(x1,2*min(kd$delta.c),k$n.comparisons+1)) #new bottom-left vertex
-               }
-               
-               ceplane <-
-                    ggplot(kd,aes(x=delta.e,y=delta.c,col=comparison)) +
-                    theme_bw() +
-                    scale_color_manual(labels=comparisons.label,values=colors.label,na.value="black") +
-                    scale_x_continuous(limits=range.e,oob=do.nothing) +
-                    scale_y_continuous(limits=range.c,oob=do.nothing) +
-                    annotate("line",x=plane[1:2,1],y=plane[1:2,2],colour="black") +
-                    annotate("polygon",plane$x,plane$y,fill="light grey",alpha=.3) +
-                    geom_hline(aes(yintercept=0),colour="grey") + geom_vline(aes(xintercept=0),colour="grey") +
-                    geom_point(size=1)
-               
-               # wtp label
-               if(!label.pos){
-                    ceplane <- ceplane +
-                         annotate(geom="text",
-                                  x=ifelse(range.c[1]/wtp>range.e[1],range.c[1]/wtp,range.e[1]),
-                                  y=range.c[1],
-                                  label=paste0("k = ",format(wtp,digits=6),"  "),hjust=.15,size=size
-                         )
-               }
-               else{
-                    m.e <- ifelse(range.e[1]<0,range.e[1],-range.e[1])
-                    m.c <- ifelse(range.c[1]<0,range.c[1],-range.c[1])
-                    x.pt <- .95*m.e
-                    y.pt <- ifelse(x.pt*wtp<m.c,m.c,x.pt*wtp)
-                    ceplane <- ceplane + annotate(geom="text",x=x.pt,y=y.pt,
-                                                  label=paste0("k = ",format(wtp,digits=6)),hjust=.15,size=size)
-               }
-          }
-          
-          if(k$n.comparisons>1&is.null(comparison)==FALSE) {
-               # adjusts bcea object for the correct number of dimensions and comparators
-               k$comp <- k$comp[comparison]
-               k$delta.e <- k$delta.e[,comparison]
-               k$delta.c <- k$delta.c[,comparison]
-               k$n.comparators=length(comparison)+1
-               k$n.comparisons=length(comparison)
-               k$interventions=k$interventions[sort(c(k$ref,k$comp))]
-               k$ICER=k$ICER[comparison]
-               k$ib=k$ib[,,comparison]
-               k$eib=k$eib[,comparison]
-               k$U=k$U[,,sort(c(k$ref,comparison+1))]
-               k$ceac=k$ceac[,comparison]
-               k$ref=rank(c(k$ref,k$comp))[1]
-               k$comp=rank(c(k$ref,k$comp))[-1]
-               k$mod <- TRUE #
-               
-               return(ceplane.plot(k,wtp=wtp,pos=alt.legend,graph="ggplot2",size=size,...))
-          }
-          
-          labs.title <- "Cost-Effectiveness Plane"
-          labs.title <- paste0(labs.title,
-                               ifelse(k$n.comparisons==1,
-                                      paste0("\n",k$interventions[k$ref]," vs ",k$interventions[-k$ref]),
-                                      paste0(
-                                           ifelse(isTRUE(k$mod),
-                                                  paste0("\n",k$interventions[k$ref]," vs ",
-                                                         paste0(k$interventions[k$comp],collapse=", ")),
-                                                  ""))))
-          
-          ceplane <- ceplane + labs(title=labs.title,x="Effectiveness differential",y="Cost differential")
-          
-          jus <- NULL
-          if(isTRUE(alt.legend)) {
-               alt.legend="bottom"
-               ceplane <- ceplane + theme(legend.direction="vertical")
-          }
-          else{
-               if(is.character(alt.legend)) {
-                    choices <- c("left", "right", "bottom", "top")
-                    alt.legend <- choices[pmatch(alt.legend,choices)]
-                    jus="center"
-                    if(is.na(alt.legend))
-                         alt.legend=FALSE
-               }
-               if(length(alt.legend)>1)
-                    jus <- alt.legend
-               if(length(alt.legend)==1 & !is.character(alt.legend)) {
-                    alt.legend <- c(1,1)
-                    jus <- alt.legend
-               }
-          }
-          
-          ceplane <- ceplane + 
-               theme(legend.position=alt.legend,legend.justification=jus,legend.title=element_blank(),legend.background=element_blank(),plot.title=element_text(face="bold")) +
-               theme(text=element_text(size=11),legend.key.size=unit(.66,"lines"),legend.margin=unit(-1.25,"line"),panel.grid=element_blank(),legend.key=element_blank(),legend.text.align=0) +
-               theme(plot.title = element_text(lineheight=1.05, face="bold",size=14.3)) +
-               opt.theme
-          
-          if(k$n.comparisons==1)
-               ceplane  <- ceplane + theme(legend.key.size=unit(.1,"lines")) + opt.theme
-          
-          return(ceplane)
-     } # !base.graphics
-     
+  ### hidden options for ggplot2 ###
+  # ICER.size =                    # changes ICER point size
+  # label.pos = FALSE              # uses alternate position for wtp label (old specification)
+  base.graphics <- ifelse(isTRUE(pmatch(graph,c("base","ggplot2"))==2),FALSE,TRUE) 
+  alt.legend <- pos
+  
+  # Forces R to avoid scientific format for graphs labels
+  options(scipen=10)
+  
+  if(base.graphics) {
+    if(!is.null(size))
+      message("option size will be ignored using base graphics")
+    
+    if(is.numeric(alt.legend)&length(alt.legend)==2){
+      temp <- ""
+      if(alt.legend[2]==0)
+        temp <- paste0(temp,"bottom")
+      else
+        temp <- paste0(temp,"top")
+      if(alt.legend[1]==0)
+        temp <- paste0(temp,"left")
+      else
+        temp <- paste0(temp,"right")
+      alt.legend <- temp
+      if(length(grep("^(bottom|top)(left|right)$",temp))==0)
+        alt.legend <- FALSE
+    }
+    if(is.logical(alt.legend)){
+      if(!alt.legend)
+        alt.legend="topright"
+      else
+        alt.legend="topleft"
+    }
+    
+    # Encodes characters so that the graph can be saved as ps or pdf
+    ps.options(encoding="CP1250")
+    pdf.options(encoding="CP1250")
+    
+    if(he$n.comparisons==1) {
+      m.e <- range(he$delta.e)[1]
+      M.e <- range(he$delta.e)[2]
+      m.c <- range(he$delta.c)[1]
+      M.c <- range(he$delta.c)[2]
+      step <- (M.e-m.e)/10
+      m.e <- ifelse(m.e<0,m.e,-m.e)
+      m.c <- ifelse(m.c<0,m.c,-m.c)
+      x.pt <- .95*m.e
+      y.pt <- ifelse(x.pt*wtp<m.c,m.c,x.pt*wtp)
+      xx <- seq(100*m.c/wtp,100*M.c/wtp,step)
+      yy <- xx*wtp
+      xx[1] <- ifelse(min(xx)<m.e,xx[1],2*m.e)
+      yy[1] <- ifelse(min(yy)<m.c,yy[1],2*m.c)
+      xx[length(xx)] <- ifelse(xx[length(xx)]<M.e,1.5*M.e,xx[length(xx)])
+      plot(xx,yy,col="white",xlim=c(m.e,M.e),ylim=c(m.c,M.c),
+           xlab="Effectiveness differential",ylab="Cost differential",
+           main=paste("Cost effectiveness plane \n",
+                      he$interventions[he$ref]," vs ",he$interventions[he$comp],sep=""),axes=F)
+      polygon(c(min(xx),seq(min(xx),max(xx),step),max(xx)),
+              c(min(yy),wtp*seq(min(xx),max(xx),step),min(yy)),
+              col="grey95",border="black")
+      #  polygon(c(xx,xx),c(yy,rev(yy)),col="grey95",border="black")
+      axis(1); axis(2); box()
+      points(he$delta.e,he$delta.c,pch=20,cex=.35,col="grey55")
+      abline(h=0,col="dark grey")
+      abline(v=0,col="dark grey")
+      text(M.e,M.c,paste("\U2022"," ICER=",format(he$ICER,digits=6,nsmall=2),sep=""),cex=.95,pos=2,col="red")
+      points(mean(he$delta.e),mean(he$delta.c),pch=20,col="red",cex=1)
+      t1 <- paste("k==",format(wtp,digits=3,nsmall=2,scientific=F),sep="")
+      text(x.pt,y.pt,parse(text=t1),cex=.8,pos=4)
+    }
+    if(he$n.comparisons>1 & is.null(comparison)==TRUE) { 
+      cl <- colors()
+      color <- cl[floor(seq(262,340,length.out=he$n.comparators))]  # gray scale
+      plot(he$delta.e[,1],he$delta.c[,1],pch=20,cex=.35,xlim=range(he$delta.e),ylim=range(he$delta.c),
+           xlab="Effectiveness differential",ylab="Cost differential",
+           main="Cost-effectiveness plane")
+      for (i in 2:he$n.comparisons) {
+        points(he$delta.e[,i],he$delta.c[,i],pch=20,cex=.35,col=color[i])
+      }
+      abline(h=0,col="dark grey")
+      abline(v=0,col="dark grey")
+      text <- paste(he$interventions[he$ref]," vs ",he$interventions[he$comp])
+      legend(alt.legend,text,col=color,cex=.7,bty="n",lty=1)
+    }
+    if(he$n.comparisons>1 & is.null(comparison)==FALSE & length(comparison)==1) { 
+      m.e <- range(he$delta.e[,comparison])[1]
+      M.e <- range(he$delta.e[,comparison])[2]
+      m.c <- range(he$delta.c[,comparison])[1]
+      M.c <- range(he$delta.c[,comparison])[2]
+      step <- (M.e-m.e)/10
+      m.e <- ifelse(m.e<0,m.e,-m.e)
+      m.c <- ifelse(m.c<0,m.c,-m.c)
+      x.pt <- .95*m.e
+      y.pt <- ifelse(x.pt*wtp<m.c,m.c,x.pt*wtp)
+      xx <- seq(100*m.c/wtp,100*M.c/wtp,step)
+      yy <- xx*wtp
+      xx[1] <- ifelse(min(xx)<m.e,xx[1],2*m.e)
+      yy[1] <- ifelse(min(yy)<m.c,yy[1],2*m.c)
+      xx[length(xx)] <- ifelse(xx[length(xx)]<M.e,1.5*M.e,xx[length(xx)])
+      plot(xx,yy,col="white",xlim=c(m.e,M.e),ylim=c(m.c,M.c),
+           xlab="Effectiveness differential",ylab="Cost differential",
+           main=paste("Cost effectiveness plane \n",
+                      he$interventions[he$ref]," vs ",he$interventions[he$comp[comparison]],sep=""),axes=F)
+      polygon(c(min(xx),seq(min(xx),max(xx),step),max(xx)),
+              c(min(yy),wtp*seq(min(xx),max(xx),step),min(yy)),
+              col="grey95",border="black")
+      axis(1); axis(2); box()
+      points(he$delta.e[,comparison],he$delta.c[,comparison],pch=20,cex=.35,col="grey55")
+      abline(h=0,col="dark grey")
+      abline(v=0,col="dark grey")
+      text(M.e,M.c,paste("\U2022"," ICER=",format(he$ICER[comparison],digits=6,nsmall=2),sep=""),cex=.95,pos=2,col="red")
+      points(mean(he$delta.e[,comparison]),mean(he$delta.c[,comparison]),pch=20,col="red",cex=1)
+      t1 <- paste("k==",format(wtp,digits=3,nsmall=2,scientific=F),sep="")
+      text(x.pt,y.pt,parse(text=t1),cex=.8,pos=4)
+    }
+    if(he$n.comparisons>1&is.null(comparison)==FALSE&length(comparison)!=1) {
+      stopifnot(all(comparison %in% 1:he$n.comparisons))
+      # adjusts bcea object for the correct number of dimensions and comparators
+      he$comp <- he$comp[comparison]
+      he$delta.e <- he$delta.e[,comparison]
+      he$delta.c <- he$delta.c[,comparison]
+      he$n.comparators=length(comparison)+1
+      he$n.comparisons=length(comparison)
+      he$interventions=he$interventions[sort(c(he$ref,he$comp))]
+      he$ICER=he$ICER[comparison]
+      he$ib=he$ib[,,comparison]
+      he$eib=he$eib[,comparison]
+      he$U=he$U[,,sort(c(he$ref,comparison+1))]
+      he$ceac=he$ceac[,comparison]
+      he$ref=rank(c(he$ref,he$comp))[1]
+      he$comp=rank(c(he$ref,he$comp))[-1]
+      he$mod <- TRUE #
+
+      return(ceplane.plot(he,wtp=wtp,pos=alt.legend,graph="base",size=size,...))
+    }
+  } #if(base.graphics)
+  else{
+    if(!isTRUE(requireNamespace("ggplot2",quietly=TRUE) & requireNamespace("grid",quietly=TRUE))){
+      message("Falling back to base graphics\n")
+      ceplane.plot(he,comparison=comparison,wtp=wtp,pos=alt.legend,graph="base"); return(invisible(NULL))
+    }
+    # no visible binding note
+
+    if(isTRUE(requireNamespace("ggplot2",quietly=TRUE) & requireNamespace("grid",quietly=TRUE))){
+    
+    delta.e <- delta.c <- lambda.e <- lambda.c <- NULL
+    
+    if(is.null(size)) {size <- ggplot2::rel(3.5)}
+    
+    label.pos <- TRUE
+    opt.theme <- ggplot2::theme()
+    ICER.size <- ifelse(he$n.comparisons==1,2,0)
+    exArgs <- list(...)
+    if(length(exArgs)>=1){
+      if(exists("ICER.size",where=exArgs))
+        ICER.size <- exArgs$ICER.size
+      if(exists("label.pos",where=exArgs))
+        if(is.logical(exArgs$label.pos))
+          label.pos <- exArgs$label.pos
+      for(obj in exArgs)
+        if(ggplot2::is.theme(obj))
+          opt.theme <- opt.theme + obj
+    }
+    
+    if(he$n.comparisons==1) {
+      kd <- data.frame(he$delta.e,he$delta.c)
+      names(kd) <- c("delta.e","delta.c")
+      # for scale_x_continuous(oob=)
+      do.nothing=function(x,limits) return(x)
+      # plot limits
+      range.e <- range(kd$delta.e)
+      range.c <- range(kd$delta.c)
+      range.e[1] <- ifelse(range.e[1]<0,range.e[1],-range.e[1])
+      range.c[1] <- ifelse(range.c[1]<0,range.c[1],-range.c[1])
+      # ce plane data
+      x1 <- range.e[1]-2*abs(diff(range.e))
+      x2 <- range.e[2]+2*abs(diff(range.e))
+      x3 <- x2
+      x <- c(x1,x2,x3)
+      y <- x*wtp; y[3] <- x1*wtp
+      plane <- data.frame(x=x,y=y)
+      
+      # build a trapezoidal plane instead of a triangle if the y value is less than the minimum difference on costs
+      if(y[1]>1.2*range.c[1]) {
+        plane <- rbind(plane,
+                       c(x2,2*range.c[1]), #new bottom-right vertex
+                       c(x1,2*range.c[1])) #new bottom-left vertex
+      }
+      
+      # actual plot
+      ceplane <- ggplot2::ggplot(kd, ggplot2::aes(delta.e,delta.c)) +
+        ggplot2::theme_bw() +
+        ggplot2::scale_x_continuous(limits=range.e,oob=do.nothing) + ggplot2::scale_y_continuous(limits=range.c,oob=do.nothing) +
+        ggplot2::scale_color_manual("",labels=paste0("ICER = ",format(he$ICER,digits=6,nsmall=2),"  "),values="red") +     
+        ggplot2::geom_line(data=plane[1:2,],ggplot2::aes(x=x,y=y),color="black",linetype=1) +
+        ggplot2::geom_polygon(data=plane,ggplot2::aes(x=x,y=y),fill="light gray",alpha=.3) +
+        ggplot2::geom_hline(ggplot2::aes(yintercept=0),colour="grey") + ggplot2::geom_vline(ggplot2::aes(xintercept=0),colour="grey") +
+        ggplot2::geom_point(size=1,colour="grey33") +
+        ggplot2::geom_point(ggplot2::aes(mean(delta.e),mean(delta.c),color=as.factor(1)),size=ICER.size)
+      
+      if(!label.pos) {
+        # sposta la label di wtp se la retta di wtp intercetta o no le ordinate
+        ceplane <- ceplane + ggplot2::annotate(geom="text",x=ifelse(range.c[1]/wtp>range.e[1],range.c[1]/wtp,range.e[1]),
+                                      #y=(1+.085)*range.c[1],
+                                      y=range.c[1],
+                                      label=paste0("k = ",format(wtp,digits=6)),hjust=-.15,size=size)
+      }
+      else{
+        m.e <- ifelse(range.e[1]<0,range.e[1],-range.e[1])
+        m.c <- ifelse(range.c[1]<0,range.c[1],-range.c[1])
+        x.pt <- .95*m.e
+        y.pt <- ifelse(x.pt*wtp<m.c,m.c,x.pt*wtp)
+        ceplane <- ceplane + ggplot2::annotate(geom="text",x=x.pt,y=y.pt,
+                                      label=paste0("k = ",format(wtp,digits=6)),hjust=.15,size=size)
+      }
+    }
+    
+    if(he$n.comparisons>1&is.null(comparison)==TRUE) {
+      
+      # create dataframe for plotting
+      kd <- with(he,data.frame(c(delta.e),c(delta.c)))
+      names(kd) <- c("delta.e","delta.c")
+      kd$comparison <- as.factor(sort(rep(1:he$n.comparisons,dim(he$delta.e)[1])))
+      
+      # dataset for ICERs
+      means <- matrix(NA_real_,nrow=he$n.comparisons,ncol=2)
+      for(i in 1:he$n.comparisons)
+        means[i,] <- colMeans(kd[kd$comparison==i,-3])
+      means <- data.frame(means)
+      means$comparison <- factor(1:he$n.comparisons)
+      names(means) <- c("lambda.e","lambda.c","comparison")
+      
+      # labels for legend
+      comparisons.label <- with(he,paste0(interventions[ref]," vs ",interventions[comp]))
+      # vector of values for color, take out white, get integer values
+      colors.label <- with(he,paste0("gray",round(seq(0,100,length.out=(n.comparisons+1))[-(n.comparisons+1)])))
+      
+      # polygon
+      do.nothing=function(x,limits) return(x)
+      # plot limits
+      range.e <- range(kd$delta.e)
+      range.c <- range(kd$delta.c)
+      range.e[1] <- ifelse(range.e[1]<0,range.e[1],-range.e[1])
+      range.c[1] <- ifelse(range.c[1]<0,range.c[1],-range.c[1])
+      # ce plane data
+      x1 <- range.e[1]-2*abs(diff(range.e))
+      x2 <- range.e[2]+2*abs(diff(range.e))
+      x3 <- x2
+      x <- c(x1,x2,x3)
+      y <- x*wtp; y[3] <- x1*wtp
+      plane <- data.frame(x=x,y=y,comparison=factor(rep(he$n.comparisons+1,3)))
+      
+      # build a trapezoidal plane instead of a triangle if the y value is less than the minimum difference on costs
+      if(y[1]>min(kd$delta.c)) {
+        plane <- rbind(plane,
+                       c(x2,2*min(kd$delta.c),he$n.comparisons+1), #new bottom-right vertex
+                       c(x1,2*min(kd$delta.c),he$n.comparisons+1)) #new bottom-left vertex
+      }
+      
+      ceplane <-
+        ggplot2::ggplot(kd,ggplot2::aes(x=delta.e,y=delta.c,col=comparison)) +
+        ggplot2::theme_bw() +
+        ggplot2::scale_color_manual(labels=comparisons.label,values=colors.label,na.value="black") +
+        ggplot2::scale_x_continuous(limits=range.e,oob=do.nothing) +
+        ggplot2::scale_y_continuous(limits=range.c,oob=do.nothing) +
+        ggplot2::annotate("line",x=plane[1:2,1],y=plane[1:2,2],colour="black") +
+        ggplot2::annotate("polygon",plane$x,plane$y,fill="light grey",alpha=.3) +
+        ggplot2::geom_hline(ggplot2::aes(yintercept=0),colour="grey") + ggplot2::geom_vline(ggplot2::aes(xintercept=0),colour="grey") +
+        ggplot2::geom_point(size=1)+
+        ggplot2::geom_point(data=means,ggplot2::aes(x=lambda.e,y=lambda.c),colour="red",size=ICER.size)
+      
+      # wtp label
+      if(!label.pos){
+        ceplane <- ceplane +
+          ggplot2::annotate(geom="text",
+                   x=ifelse(range.c[1]/wtp>range.e[1],range.c[1]/wtp,range.e[1]),
+                   y=range.c[1],
+                   label=paste0("k = ",format(wtp,digits=6),"  "),hjust=.15,size=size
+          )
+      }
+      else{
+        m.e <- ifelse(range.e[1]<0,range.e[1],-range.e[1])
+        m.c <- ifelse(range.c[1]<0,range.c[1],-range.c[1])
+        x.pt <- .95*m.e
+        y.pt <- ifelse(x.pt*wtp<m.c,m.c,x.pt*wtp)
+        ceplane <- ceplane + ggplot2::annotate(geom="text",x=x.pt,y=y.pt,
+                                      label=paste0("k = ",format(wtp,digits=6)),hjust=.15,size=size)
+      }
+    }
+    
+    if(he$n.comparisons>1&is.null(comparison)==FALSE) {
+      # adjusts bcea object for the correct number of dimensions and comparators
+      he$comp <- he$comp[comparison]
+      he$delta.e <- he$delta.e[,comparison]
+      he$delta.c <- he$delta.c[,comparison]
+      he$n.comparators=length(comparison)+1
+      he$n.comparisons=length(comparison)
+      he$interventions=he$interventions[sort(c(he$ref,he$comp))]
+      he$ICER=he$ICER[comparison]
+      he$ib=he$ib[,,comparison]
+      he$eib=he$eib[,comparison]
+      he$U=he$U[,,sort(c(he$ref,comparison+1))]
+      he$ceac=he$ceac[,comparison]
+      he$ref=rank(c(he$ref,he$comp))[1]
+      he$comp=rank(c(he$ref,he$comp))[-1]
+      he$mod <- TRUE #
+      
+      return(ceplane.plot(he,wtp=wtp,pos=alt.legend,graph="ggplot2",size=size,...))
+    }
+    
+    labs.title <- "Cost-Effectiveness Plane"
+    labs.title <- with(he,paste0(labs.title,
+                                 ifelse(n.comparisons==1,
+                                        paste0("\n",interventions[ref]," vs ",interventions[-ref]),
+                                        paste0(
+                                          ifelse(isTRUE(he$mod),
+                                                 paste0("\n",interventions[ref]," vs ",
+                                                        paste0(interventions[comp],collapse=", ")),
+                                                 "")))))
+    
+    ceplane <- ceplane + ggplot2::labs(title=labs.title,x="Effectiveness differential",y="Cost differential")
+    
+    jus <- NULL
+    if(isTRUE(alt.legend)) {
+      alt.legend="bottom"
+      ceplane <- ceplane + ggplot2::theme(legend.direction="vertical")
+    }
+    else{
+      if(is.character(alt.legend)) {
+        choices <- c("left", "right", "bottom", "top")
+        alt.legend <- choices[pmatch(alt.legend,choices)]
+        jus="center"
+        if(is.na(alt.legend))
+          alt.legend=FALSE
+      }
+      if(length(alt.legend)>1)
+        jus <- alt.legend
+      if(length(alt.legend)==1 & !is.character(alt.legend)) {
+        alt.legend <- c(1,1)
+        jus <- alt.legend
+      }
+    }
+    
+    ceplane <- ceplane + 
+      ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),legend.background=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold")) +
+      ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"lines"),legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank(),legend.text.align=0) +
+      ggplot2::theme(plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3)) +
+      opt.theme
+    
+    if(he$n.comparisons==1)
+      ceplane  <- ceplane + ggplot2::theme(legend.key.size=grid::unit(.1,"lines")) + opt.theme
+    
+    return(ceplane)
+  }
+  } # !base.graphics
+  
 }
-##############################################################################################################
 
-
-
-##############################################################################################################
+###ib.plot####################################################################################################
 ## Plots the IB
 ib.plot <- function(he,comparison=NULL,wtp=25000,bw=nbw,n=512,xlim=NULL,graph=c("base","ggplot2")){
      base.graphics <- ifelse(isTRUE(pmatch(graph,c("base","ggplot2"))==2),FALSE,TRUE)
@@ -697,7 +741,7 @@ ib.plot <- function(he,comparison=NULL,wtp=25000,bw=nbw,n=512,xlim=NULL,graph=c(
           axis(1)
           ypt <- .95*max(d$y)
           xpt <- d$x[max(which(d$y>=ypt))]
-          text(xpt,ypt,parse(text=paste("p(IB(",expression(bold(theta)),"),k==",format(wtp,digits=8,nsmall=2),")",sep="")),
+          text(xpt,ypt,parse(text=paste("p(IB(",expression(bold(theta)),")>0,k==",format(wtp,digits=8,nsmall=2),")",sep="")),
                cex=.85,pos=4)
           xplus <- d$x[d$x>=0]
           yplus <- d$y[d$x>=0]
@@ -707,18 +751,18 @@ ib.plot <- function(he,comparison=NULL,wtp=25000,bw=nbw,n=512,xlim=NULL,graph=c(
           abline(h=0,col="black")
      }                   # ! base graphics
      else{
-          if(!isTRUE(require(ggplot2)&require(grid))) {
+          if(!isTRUE(requireNamespace("ggplot2",quietly=TRUE)&requireNamespace("grid",quietly=TRUE))) {
                message("falling back to base graphics\n")
                ib.plot(he,comparison=comparison,wtp=wtp,bw=bw,n=n,xlim=xlim,graph="base")
                return(invisible(NULL))
           }
           
+          ### no visible binding note
+          x <- y <- NA_real_
+          
           if(is.null(comparison)) {
                comparison <- 1
           }
-          
-          # no visible bindings note
-          x <- y <- NULL
           
           if(max(he$k)<wtp) {
                wtp <- max(he$k)
@@ -728,222 +772,321 @@ ib.plot <- function(he,comparison=NULL,wtp=25000,bw=nbw,n=512,xlim=NULL,graph=c(
           if(he$n.comparisons==1) {
                nbw <- sd(he$ib[w,])/1.5
                density <- density(he$ib[w,],bw=bw,n=n)
-               df <- data.frame(x=density$x,y=density$y)
+               df <- data.frame("x"=density$x,"y"=density$y)
           }
           if(he$n.comparisons>1) {
                nbw <- sd(he$ib[w,,comparison])/1.5
                density <- density(he$ib[w,,comparison],bw=bw,n=n)
-               df <- data.frame(x=density$x,y=density$y)
+               df <- data.frame("x"=density$x,"y"=density$y)
           }
           if(is.null(xlim)){
                xlim<-range(df$x)
           }
-          ib <- ggplot(df,aes(x,y)) + theme_bw() +
-               geom_vline(xintercept=0,colour="grey50",size=0.5) + geom_hline(yintercept=0,colour="grey50",size=0.5) +
-               geom_ribbon(data=subset(df,x>0),aes(ymax=y),ymin=0,fill="grey50",alpha=.2) + geom_line() +
-               annotate(geom="text",label=paste0("p(IB(theta),k=",wtp,")"),parse=T,x=df$x[which.max(df$y)],y=max(df$y),hjust=-.5,vjust=1,size=3.5) + coord_cartesian(xlim=xlim)
+          ib <- ggplot2::ggplot(df,ggplot2::aes(x,y)) + ggplot2::theme_bw() +
+            ggplot2::geom_vline(xintercept=0,colour="grey50",size=0.5) + ggplot2::geom_hline(yintercept=0,colour="grey50",size=0.5) +
+            ggplot2::geom_ribbon(data=subset(df,x>0),ggplot2::aes(ymax=y),ymin=0,fill="grey50",alpha=.2) + ggplot2::geom_line() +
+            ggplot2::annotate(geom="text",label=paste0("p(IB(theta)>0,k==",wtp,")"),parse=T,x=df$x[which.max(df$y)],y=max(df$y),hjust=-.5,vjust=1,size=3.5) + ggplot2::coord_cartesian(xlim=xlim)
           
           labs.title <- paste0("Incremental Benefit Distribution\n",he$interventions[he$ref]," vs ",
                                he$interventions[he$comp[comparison]],"")
           
           ib <- ib + 
-               theme(plot.title=element_text(face="bold"),text=element_text(size=11),panel.grid=element_blank()) +
-               theme(axis.text.y=element_blank(),axis.ticks.y=element_blank()) +
-               labs(title=labs.title,x=parse(text="IB(theta)"),y="Density") +
-               theme(plot.title = element_text(lineheight=1.05, face="bold",size=14.3))
+            ggplot2::theme(plot.title=ggplot2::element_text(face="bold"),text=ggplot2::element_text(size=11),
+                           panel.grid=ggplot2::element_blank(),axis.text.y=ggplot2::element_blank(),axis.ticks.y=ggplot2::element_blank()) +
+            ggplot2::labs(title=labs.title,x=parse(text="IB(theta)"),y="Density") +
+            ggplot2::theme(plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
           return(ib)
           
      } #! base.graphics
 }
 
 
-
-##############################################################################################################
+###eib.plot###################################################################################################
 ## Plots the EIB
-eib.plot <- function(he,comparison=NULL,pos=c(1,0),size=NULL,graph=c("base","ggplot2"),...) {
-     
-     options(scipen=10)
-     alt.legend <- pos
-     base.graphics <- ifelse(isTRUE(pmatch(graph,c("base","ggplot2"))==2),FALSE,TRUE) 
-     
-     
-     if(base.graphics) {
-          if(!is.null(comparison))
-               message("option comparison will be ignored using base graphics")
-          if(!is.null(size))
-               message("option size will be ignored using bsae graphics")
-          
-          if(is.numeric(alt.legend)&length(alt.legend)==2){
-               temp <- ""
-               if(alt.legend[2]==0)
-                    temp <- paste0(temp,"bottom")
-               else
-                    temp <- paste0(temp,"top")
-               if(alt.legend[1]==1)
-                    temp <- paste0(temp,"right")
-               else
-                    temp <- paste0(temp,"left")
-               alt.legend <- temp
-               if(length(grep("^(bottom|top)(left|right)$",temp))==0)
-                    alt.legend <- FALSE
-          }
-          if(is.logical(alt.legend)){
-               if(!alt.legend)
-                    alt.legend="topleft"
-               else
-                    alt.legend="topright"
-          }
-          
-          if(he$n.comparisons==1) {
-               plot(he$k,he$eib,t="l",xlab="Willingness to pay", ylab="EIB", main="Expected Incremental Benefit")
-               abline(h=0,col="grey")
-               if(length(he$kstar)>0) {
-                    abline(v=he$kstar,col="dark grey",lty="dotted")
-                    text(he$kstar,min(range(he$eib)),paste("k* = ",he$kstar,sep=""))
-               }
-          }
-          if(he$n.comparisons>1) {
-               color <- rep(1,he$n.comparisons); lwd <- 1
-               if (he$n.comparisons>6) {
-                    cl <- colors()
-                    color <- cl[floor(seq(262,340,length.out=he$n.comparators))]	# gray scale
-                    lwd <- 1.5
-               }
-               
-               plot(he$k,he$eib[,1],t="l",xlab="Willingness to pay", ylab="EIB",ylim=range(he$eib),
-                    main="Expected Incremental Benefit",lty=1,lwd=lwd)
-               for (j in 2:he$n.comparisons) {
-                    points(he$k,he$eib[,j],t="l",col=color[j],lty=j,lwd=lwd)
-               }
-               abline(h=0,col="grey")
-               if(length(he$kstar)>0) {
-                    abline(v=he$kstar,col="dark grey",lty="dotted")
-                    text(he$kstar,min(range(he$eib)),paste("k* = ",he$kstar,sep=""))
-               }
-               text <- paste(he$interventions[he$ref]," vs ",he$interventions[he$comp])
-               legend(alt.legend,text,col=color,cex=.7,bty="n",lty=1:he$n.comparisons)
-          }
-     } # base.graphics
-     else{
-          if(!isTRUE(require(ggplot2)&require(grid))){
-               message("falling back to base graphics\n")
-               eib.plot(he,pos=alt.legend,graph="base"); return(invisible(NULL))}
-          
-          # no visible binding note
-          k.kstar <- NULL
-          
-          k <- he
-          rm(he)
-          
-          if(is.null(size))
-               size=rel(3.5)
-          
-          opt.theme <- theme()
-          exArgs <- list(...)
-          for(obj in exArgs)
-               if(is.theme(obj))
-                    opt.theme <- opt.theme + obj
-          
-          if(k$n.comparisons==1) {
-               # data frame
-               data.psa <- data.frame(k$k,k$eib)
-               names(data.psa) <- c("k","eib")
-               
-               if(!length(k$kstar)==0) {
-                    # label
-                    label <- paste0("k* = ",format(k$kstar,digits=6))
-                    eib <- ggplot(data.psa, aes(k,eib)) + geom_line() + theme_bw() +
-                         geom_hline(aes(yintercept=0),colour="grey") + 
-                         geom_vline(aes(xintercept=k.kstar),data=data.frame(k$kstar),colour="grey50",linetype=2,size=.5) +
-                         annotate("text",label=label,x=k$kstar,y=min(k$eib),hjust=ifelse((max(k$k)-k$kstar)/max(k$k)>1/6,-.1,1.1),size=size)
-               }
-               else {
-                    eib <- ggplot(data.psa, aes(k,eib)) + geom_line() + theme_bw() +geom_hline(aes(yintercept=0),colour="grey")
-               }
-          }
-          
-          if(k$n.comparisons>1&is.null(comparison)==TRUE) {
-               data.psa <- data.frame(c(k$k),c(k$eib))
-               names(data.psa) <- c("k","eib")
-               data.psa$comparison <- as.factor(sort(rep(1:k$n.comparisons,length(k$k))))
-               
-               # labels for legend
-               comparisons.label <- paste0(k$interventions[k$ref]," vs ",k$interventions[k$comp])
-               
-               # linetype is the indicator of the comparison.
-               # 1 = solid, 2 = dashed, 3 = dotted, 4 = dotdash, 5 = longdash, 6 = twodash
-               linetypes <- rep(c(1,2,3,4,5,6),ceiling(k$n.comparisons/6))[1:k$n.comparisons]
-               
-               eib <- 
-                    ggplot(data.psa,aes(k,eib,linetype=comparison)) + geom_line() + theme_bw() +
-                    geom_hline(yintercept=0,linetype=1,color="grey") + 
-                    scale_linetype_manual("",labels=comparisons.label,values=linetypes)
-               
-               if(!length(k$kstar)==0) {
-                    # label
-                    label <- paste0("k* = ",format(k$kstar,digits=6))
-                    
-                    eib <-eib +
-                         geom_vline(aes(xintercept=k.kstar),data=data.frame(k$kstar),colour="grey50",linetype=2,size=.5) + 
-                         annotate("text",label=label,x=k$kstar,y=min(k$eib),hjust=ifelse((max(k$k)-k$kstar)/max(k$k)>1/6,-.1,1.1),size=size,vjust=1)
-               }
-          }
-          
-          if(k$n.comparisons>1&is.null(comparison)==FALSE) {
-               # adjusts bcea object for the correct number of dimensions and comparators
-               k$comp <- k$comp[comparison]
-               k$delta.e <- k$delta.e[,comparison]
-               k$delta.c <- k$delta.c[,comparison]
-               k$n.comparators=length(comparison)+1
-               k$n.comparisons=length(comparison)
-               k$interventions=k$interventions[sort(c(k$ref,k$comp))]
-               k$ICER=k$ICER[comparison]
-               k$ib=k$ib[,,comparison]
-               k$eib=k$eib[,comparison]
-               k$U=k$U[,,sort(c(k$ref,comparison+1))]
-               k$ceac=k$ceac[,comparison]
-               k$ref=rank(c(k$ref,k$comp))[1]
-               k$comp=rank(c(k$ref,k$comp))[-1]
-               k$mod <- TRUE #
-               
-               return(eib.plot(k,pos=alt.legend,graph="ggplot2",size=size,...))
-          }
-          
-          eib <- eib + labs(title="Expected Incremental Benefit",x="Willingness to pay",y="EIB")
-          
-          jus <- NULL
-          if(isTRUE(alt.legend)) {
-               alt.legend="bottom"
-               eib <- eib + theme(legend.direction="vertical")
-          }
-          else{
-               if(is.character(alt.legend)) {
-                    choices <- c("left", "right", "bottom", "top")
-                    alt.legend <- choices[pmatch(alt.legend,choices)]
-                    jus="center"
-                    if(is.na(alt.legend))
-                         alt.legend=FALSE
-               }
-               if(length(alt.legend)>1)
-                    jus <- alt.legend
-               if(length(alt.legend)==1 & !is.character(alt.legend)) {
-                    alt.legend <- c(1,0)
-                    jus <- alt.legend
-               }
-          }
-          eib <- eib + theme(legend.position=alt.legend,legend.justification=jus,legend.title=element_blank(),legend.background=element_blank()) + 
-               theme(text=element_text(size=11),legend.key.size=unit(.66,"lines"),legend.margin=unit(-1.25,"line"),panel.grid=element_blank(),legend.key=element_blank(),legend.text.align=0) +
-               theme(plot.title = element_text(lineheight=1.05, face="bold",size=14.3)) +
-               opt.theme
-          
-          return(eib)
-     } # !base.graphics
+eib.plot <- function(he,comparison=NULL,pos=c(1,0),size=NULL,plot.cri=NULL,graph=c("base","ggplot2"),...) {
+  
+  options(scipen=10)
+  alt.legend <- pos
+  base.graphics <- ifelse(isTRUE(pmatch(graph,c("base","ggplot2"))==2),FALSE,TRUE) 
+  
+  ### evaluate arguments. possibility to include different values of confidence as "alpha"
+  exArgs <- list(...)
+  alpha <- 0.05
+  cri.quantile <- TRUE
+  if(length(exArgs)>=1){
+    if(exists("cri.quantile",where=exArgs))
+      cri.quantile <- exArgs$cri.quantile
+    if(exists("alpha",where=exArgs)){
+      alpha <- exArgs$alpha
+      if(alpha<0 | alpha>1) {
+        warning("Argument alpha must be between 0 and 1. Reset to default at 0.95")
+        alpha <- 0.05
+      }
+      if(alpha>0.80 & cri.quantile) {
+        warning("It is recommended adopting the normal approximation of the credible interval for high values of alpha. Please set the argument cri.quantile=FALSE to use the normal approsimation.")
+      }
+    }
+  }
+  
+  ### function to calculate the credible intervals
+  eib.plot.cri <- function(he,alpha,cri.quantile) {
+    if(alpha<0 | alpha>1) {
+      warning("Argument alpha must be between 0 and 1. Reset to default at 0.95")
+      alpha <- 0.05
+    }
+    margin <- 1
+    if(he$n.comparison>1) margin <- c(1,3)
+    cri <- data.frame("low"=c(apply(he$ib,margin,function(x) ifelse(cri.quantile,
+                                                                    quantile(x,(alpha)/2),
+                                                                    mean(x)-qnorm((alpha)/2)*sd(x)
+    ))),
+    "upp"=c(apply(he$ib,margin,function(x) ifelse(cri.quantile,
+                                                  quantile(x,1-(alpha)/2),
+                                                  mean(x)-qnorm(1-(alpha)/2)*sd(x)
+    ))),
+    "comp"=as.factor(sort(rep(1:he$n.comparisons,length(he$k)))))
+    return(cri)
+  }
+  ### if plot.cri is null, if comp=1 plot them otherwise do not (clutter!)
+  if(is.null(plot.cri) & isTRUE(he$n.comparisons==1 | is.null(comparison)))
+    plot.cri <- ifelse(he$n.comparisons==1,TRUE,FALSE)
+  
+  ### calculate credible intervals if necessary
+  if(isTRUE(plot.cri))
+    cri <- eib.plot.cri(he,alpha,cri.quantile)
+  
+  ### calculate plot vertical limits
+  yl <- ifelse(rep(!isTRUE(plot.cri),2),
+               range(c(he$eib)),
+               range(c(he$eib),c(cri[,1:2])))
+  
+  if(base.graphics) {
+    if(!is.null(size)){
+      if(!is.na(size)){
+        message("Option size will be ignored using base graphics.")
+        size <- NULL
+      }
+    }
+    
+    if(is.numeric(alt.legend)&length(alt.legend)==2){
+      temp <- ""
+      if(alt.legend[2]==0)
+        temp <- paste0(temp,"bottom")
+      else
+        temp <- paste0(temp,"top")
+      if(alt.legend[1]==1)
+        temp <- paste0(temp,"right")
+      else
+        temp <- paste0(temp,"left")
+      alt.legend <- temp
+      if(length(grep("^(bottom|top)(left|right)$",temp))==0)
+        alt.legend <- FALSE
+    }
+    if(is.logical(alt.legend)){
+      if(!alt.legend)
+        alt.legend="topleft"
+      else
+        alt.legend="topright"
+    }
+    
+    if(he$n.comparisons==1) {
+      plot(NULL,xlab="Willingness to pay",ylab="EIB",ylim=yl,xlim=range(he$k),
+           main=paste0("Expected Incremental Benefit",ifelse(plot.cri,paste0("\nand ",format((1-alpha)*100,digits=4),"% credible intervals"),"")))
+      ### x axis
+      abline(h=0,col="grey")
+      ### EIB
+      lines(he$k,he$eib)
+      ### CRI
+      if(plot.cri){
+        lines(he$k,cri$low,col="grey50",lty=2)
+        lines(he$k,cri$upp,col="grey50",lty=2)
+      }
+      ### BEP
+      if(length(he$kstar)>0 & is.null(size)) {
+        abline(v=he$kstar,col="dark grey",lty="dotted")
+        text(he$kstar,min(yl),paste("k* = ",he$kstar,sep=""))
+      }
+      if(isTRUE(he$mod))
+        legend(alt.legend,paste0(he$interventions[he$ref]," vs ",he$interventions[he$comp]),cex=.7,bty="n",lty=1,lwd=1)
+    }
+    if(he$n.comparisons>1&is.null(comparison)) {
+      lwd <- ifelse(he$n.comparisons>6,1.5,1)
+      plot(NULL,xlab="Willingness to pay", ylab="EIB",ylim=yl,xlim=range(he$k),
+           main=paste0("Expected Incremental Benefit",ifelse(plot.cri,paste0("\nand ",format((1-alpha)*100,digits=4),"% credible intervals"),"")))
+      abline(h=0,col="grey")
+      for (j in 1:he$n.comparisons){
+        lines(he$k,he$eib[,j],lty=j,lwd=ifelse(plot.cri,lwd+1,lwd))
+        if(plot.cri){
+          lines(he$k,cri$low[cri$comp==j],lty=j,lwd=lwd,col="grey50")
+          lines(he$k,cri$upp[cri$comp==j],lty=j,lwd=lwd,col="grey50")
+        }
+      }
+      if(length(he$kstar)>0 & is.null(size)) {
+        abline(v=he$kstar,col="dark grey",lty="dotted")
+        text(he$kstar,min(yl),paste("k* = ",he$kstar,sep=""))
+      }
+      text <- paste0(he$interventions[he$ref]," vs ",he$interventions[he$comp])
+      legend(alt.legend,text,cex=.7,bty="n",lty=1:he$n.comparisons,lwd=ifelse(plot.cri,lwd+1,lwd))
+    }
+    if(he$n.comparisons>1&!is.null(comparison)) {
+      # adjusts bcea object for the correct number of dimensions and comparators
+      he$comp <- he$comp[comparison]
+      he$delta.e <- he$delta.e[,comparison]
+      he$delta.c <- he$delta.c[,comparison]
+      he$n.comparators=length(comparison)+1
+      he$n.comparisons=length(comparison)
+      he$interventions=he$interventions[sort(c(he$ref,he$comp))]
+      he$ICER=he$ICER[comparison]
+      he$ib=he$ib[,,comparison]
+      he$eib=he$eib[,comparison]
+      he$U=he$U[,,sort(c(he$ref,comparison+1))]
+      he$ceac=he$ceac[,comparison]
+      he$ref=rank(c(he$ref,he$comp))[1]
+      he$comp=rank(c(he$ref,he$comp))[-1]
+      he$mod <- TRUE #
+      
+      eib.plot(he,pos=alt.legend,graph="base",size=size,comparison=NULL,plot.cri=plot.cri,alpha=alpha,cri.quantile=cri.quantile,...)
+    }
+  } # base.graphics
+  else{
+    if(!isTRUE(requireNamespace("ggplot2",quietly=TRUE)&requireNamespace("grid",quietly=TRUE))){
+      message("falling back to base graphics\n")
+      eib.plot(he,pos=alt.legend,graph="base"); return(invisible(NULL))
+    }
+    
+    ### no visible binding note
+    k <- kstar <- low <- upp <- NA_real_
+    
+    if(is.null(size))
+      size=ggplot2::rel(3.5)
+    
+    opt.theme <- ggplot2::theme()
+    for(obj in exArgs)
+      if(ggplot2::is.theme(obj))
+        opt.theme <- opt.theme + obj
+    
+    if(he$n.comparisons==1) {
+      # data frame
+      data.psa <- with(he,data.frame("k"=k,"eib"=eib,"comparison"=as.factor(sort(rep(1:n.comparisons,length(he$k))))))
+      if(plot.cri)
+        data.psa <- cbind(data.psa,cri)
+      eib <- ggplot2::ggplot(data.psa, ggplot2::aes(k,eib)) +
+        ggplot2::theme_bw() +
+        ggplot2::geom_hline(ggplot2::aes(yintercept=0),colour="grey")
+      if(!isTRUE(he$mod)){
+        eib <- eib + ggplot2::geom_line()
+      }
+      else{
+        eib <- eib + ggplot2::geom_line(ggplot2::aes(linetype=comparison)) +
+          ggplot2::scale_linetype_manual("",values=1,labels=with(he,paste0(interventions[ref]," vs ",interventions[comp])))
+      }
+      
+      if(!length(he$kstar)==0 & !is.na(size)) {
+        # label
+        label <- paste0("k* = ",format(he$kstar,digits=6))
+        eib <- eib +
+          ggplot2::geom_vline(ggplot2::aes(xintercept=kstar),data=data.frame("kstar"=he$kstar),colour="grey50",linetype=2,size=.5) +
+          ggplot2::annotate("text",label=label,x=he$kstar,y=min(yl),hjust=ifelse((max(he$k)-he$kstar)/max(he$k)>1/6,-.1,1.1),size=size)
+      }
+      
+      if(plot.cri){
+        eib <- eib +
+          ggplot2::geom_line(ggplot2::aes(y=low),colour="grey50",lty=2) +
+          ggplot2::geom_line(ggplot2::aes(y=upp),colour="grey50",lty=2)
+      }
+    }
+    if(he$n.comparisons>1&is.null(comparison)==TRUE) {
+      data.psa <- with(he,data.frame("k"=c(k),"eib"=c(eib),"comparison"=as.factor(sort(rep(1:n.comparisons,length(he$k))))))
+      if(plot.cri)
+        data.psa <- cbind(data.psa,cri)
+      # labels for legend
+      comparisons.label <- with(he,paste0(interventions[ref]," vs ",interventions[comp]))
+      
+      # linetype is the indicator of the comparison.
+      # 1 = solid, 2 = dashed, 3 = dotted, 4 = dotdash, 5 = longdash, 6 = twodash
+      linetypes <- rep(c(1,2,3,4,5,6),ceiling(he$n.comparisons/6))[1:he$n.comparisons]
+      
+      eib <- 
+        ggplot2::ggplot(data.psa,ggplot2::aes(x=k,y=eib,linetype=comparison)) + 
+        ggplot2::geom_hline(yintercept=0,linetype=1,color="grey") + 
+        ggplot2::theme_bw() +
+        ggplot2::geom_line(lwd=ifelse(!plot.cri,0.5,0.75)) +
+        ggplot2::scale_linetype_manual("",labels=comparisons.label,values=linetypes)
+      
+      if(!length(he$kstar)==0 & !is.na(size)) {
+        # label
+        label <- paste0("k* = ",format(he$kstar,digits=6))
+        eib <-eib +
+          ggplot2::geom_vline(ggplot2::aes(xintercept=kstar),data=data.frame("kstar"=he$kstar),colour="grey50",linetype=2,size=.5) + 
+          ggplot2::annotate("text",label=label,x=he$kstar,y=min(yl),hjust=ifelse((max(he$k)-he$kstar)/max(he$k)>1/6,-.1,1.1),size=size,vjust=1)
+      }
+      
+      if(plot.cri){
+        eib <- eib +
+          ggplot2::geom_line(ggplot2::aes(y=low),colour="grey50",show_guide=F)+
+          ggplot2::geom_line(ggplot2::aes(y=upp),colour="grey50",show_guide=F)
+      }
+    }
+    
+    if(he$n.comparisons>1&is.null(comparison)==FALSE) {
+      # adjusts bcea object for the correct number of dimensions and comparators
+      he$comp <- he$comp[comparison]
+      he$delta.e <- he$delta.e[,comparison]
+      he$delta.c <- he$delta.c[,comparison]
+      he$n.comparators=length(comparison)+1
+      he$n.comparisons=length(comparison)
+      he$interventions=he$interventions[sort(c(he$ref,he$comp))]
+      he$ICER=he$ICER[comparison]
+      he$ib=he$ib[,,comparison]
+      he$eib=he$eib[,comparison]
+      he$U=he$U[,,sort(c(he$ref,comparison+1))]
+      he$ceac=he$ceac[,comparison]
+      he$ref=rank(c(he$ref,he$comp))[1]
+      he$comp=rank(c(he$ref,he$comp))[-1]
+      he$mod <- TRUE #
+      
+      return(eib.plot(he,pos=alt.legend,graph="ggplot2",size=size,comparison=NULL,plot.cri=plot.cri,alpha=alpha,cri.quantile=cri.quantile,...))
+    }
+    
+    eib <- eib + 
+      ggplot2::labs(x="Willingness to pay",y="EIB",
+                    title=paste0("Expected Incremental Benefit",
+                                 ifelse(plot.cri,paste0("\nand ",format((1-alpha)*100,digits=4),"% credible intervals"),"")))
+    
+    jus <- NULL
+    if(isTRUE(alt.legend)) {
+      alt.legend="bottom"
+      eib <- eib + ggplot2::theme(legend.direction="vertical")
+    }
+    else{
+      if(is.character(alt.legend)) {
+        choices <- c("left", "right", "bottom", "top")
+        alt.legend <- choices[pmatch(alt.legend,choices)]
+        jus="center"
+        if(is.na(alt.legend))
+          alt.legend=FALSE
+      }
+      if(length(alt.legend)>1)
+        jus <- alt.legend
+      if(length(alt.legend)==1 & !is.character(alt.legend)) {
+        alt.legend <- c(1,0)
+        jus <- alt.legend
+      }
+    }
+    eib <- eib + 
+      ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),
+                     legend.background=ggplot2::element_blank(),text=ggplot2::element_text(size=11),
+                     legend.key.size=grid::unit(.66,"lines"),legend.margin=grid::unit(-1.25,"line"),
+                     panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank(),legend.text.align=0,
+                     plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3)) +
+      opt.theme
+    
+    return(eib)
+  } # !base.graphics
 }
-##############################################################################################################
 
 
-
-##############################################################################################################
+###ceac.plot##################################################################################################
 ## Plots the CEAC
 ceac.plot <- function(he,comparison=NULL,pos=c(1,0),graph=c("base","ggplot2")) {
      options(scipen=10)
@@ -952,10 +1095,6 @@ ceac.plot <- function(he,comparison=NULL,pos=c(1,0),graph=c("base","ggplot2")) {
      base.graphics <- ifelse(isTRUE(pmatch(graph,c("base","ggplot2"))==2),FALSE,TRUE) 
      
      if(base.graphics) {
-          
-          if(!is.null(comparison))
-               message("option comparison will be ignored in base graphics\n")
-          
           if(is.numeric(alt.legend)&length(alt.legend)==2){
                temp <- ""
                if(alt.legend[2]==1)
@@ -981,7 +1120,7 @@ ceac.plot <- function(he,comparison=NULL,pos=c(1,0),graph=c("base","ggplot2")) {
                plot(he$k,he$ceac,t="l",xlab="Willingness to pay",ylab="Probability of cost effectiveness",
                     ylim=c(0,1),main="Cost Effectiveness\nAcceptability Curve")
           }
-          if(he$n.comparisons>1) {
+          if(he$n.comparisons>1&is.null(comparison)) {
                color <- rep(1,he$n.comparisons); lwd <- 1
                if (he$n.comparisons>6) {
                     cl <- colors()
@@ -997,67 +1136,81 @@ ceac.plot <- function(he,comparison=NULL,pos=c(1,0),graph=c("base","ggplot2")) {
                text <- paste(he$interventions[he$ref]," vs ",he$interventions[he$comp])
                legend(alt.legend,text,col=color,cex=.7,bty="n",lty=1:he$n.comparisons)
           }
+          if(he$n.comparisons>1&!is.null(comparison)) {
+            # adjusts bcea object for the correct number of dimensions and comparators
+            he$comp <- he$comp[comparison]
+            he$delta.e <- he$delta.e[,comparison]
+            he$delta.c <- he$delta.c[,comparison]
+            he$n.comparators=length(comparison)+1
+            he$n.comparisons=length(comparison)
+            he$interventions=he$interventions[sort(c(he$ref,he$comp))]
+            he$ICER=he$ICER[comparison]
+            he$ib=he$ib[,,comparison]
+            he$eib=he$eib[,comparison]
+            he$U=he$U[,,sort(c(he$ref,comparison+1))]
+            he$ceac=he$ceac[,comparison]
+            he$ref=rank(c(he$ref,he$comp))[1]
+            he$comp=rank(c(he$ref,he$comp))[-1]
+            he$mod <- TRUE #
+            
+            ceac.plot(he,pos=alt.legend,graph="base")
+          }
      } # base.graphics
      else{
-          if(!isTRUE(require(ggplot2)&require(grid))){
+          if(!isTRUE(requireNamespace("ggplot2",quietly=TRUE)&requireNamespace("grid",quietly=TRUE))){
                message("falling back to base graphics\n")
                ceac.plot(he,pos=alt.legend,graph="base"); return(invisible(NULL))
           }
           
-          ### no visible binding problems
-          k.k <- k.ceac <- NULL
-          
-          k <- he
-          rm(he)
-          if(k$n.comparisons==1) {
-               data.psa <- data.frame(k$k,k$ceac)
-               
-               ceac <- ggplot(data.psa, aes(k.k,k.ceac)) + geom_line() 
+          # no visible binding note
+          k = NA_real_
+
+          if(he$n.comparisons==1) {
+               data.psa <- with(he,data.frame("k"=k,"ceac"=ceac))
+               ceac <- ggplot2::ggplot(data.psa, ggplot2::aes(k,ceac)) + ggplot2::geom_line() 
           }
-          if(k$n.comparisons>1 & is.null(comparison)==TRUE) {
-               data.psa <- data.frame(c(k$k),c(k$ceac))
-               names(data.psa) <- c("k","ceac")
-               data.psa$comparison <- as.factor(sort(rep(1:k$n.comparisons,length(k$k))))
+          if(he$n.comparisons>1 & is.null(comparison)==TRUE) {
+               data.psa <- with(he,data.frame("k"=c(k),"ceac"=c(ceac),"comparison"=as.factor(sort(rep(1:n.comparisons,length(k))))))
                
                # labels for legend
-               comparisons.label <- paste0(k$interventions[k$ref]," vs ",k$interventions[k$comp])
+               comparisons.label <- with(he,paste0(interventions[ref]," vs ",interventions[comp]))
                
                # linetype is the indicator
-               linetypes <- rep(c(1,2,3,4,5,6),ceiling(k$n.comparisons/6))[1:k$n.comparisons]
+               linetypes <- rep(c(1,2,3,4,5,6),ceiling(he$n.comparisons/6))[1:he$n.comparisons]
                
-               ceac <- ggplot(data.psa,aes(k,ceac,linetype=comparison)) +
-                    geom_line() +
-                    scale_linetype_manual("",labels=comparisons.label,values=linetypes)
+               ceac <- ggplot2::ggplot(data.psa,ggplot2::aes(k,ceac,linetype=comparison)) +
+                 ggplot2::geom_line() +
+                 ggplot2::scale_linetype_manual("",labels=comparisons.label,values=linetypes)
           }
           
-          if(k$n.comparisons>1&is.null(comparison)==FALSE) {
+          if(he$n.comparisons>1&is.null(comparison)==FALSE) {
                # adjusts bcea object for the correct number of dimensions and comparators
-               k$comp <- k$comp[comparison]
-               k$delta.e <- k$delta.e[,comparison]
-               k$delta.c <- k$delta.c[,comparison]
-               k$n.comparators=length(comparison)+1
-               k$n.comparisons=length(comparison)
-               k$interventions=k$interventions[sort(c(k$ref,k$comp))]
-               k$ICER=k$ICER[comparison]
-               k$ib=k$ib[,,comparison]
-               k$eib=k$eib[,comparison]
-               k$U=k$U[,,sort(c(k$ref,comparison+1))]
-               k$ceac=k$ceac[,comparison]
-               k$ref=rank(c(k$ref,k$comp))[1]
-               k$comp=rank(c(k$ref,k$comp))[-1]
-               k$mod <- TRUE #
+               he$comp <- he$comp[comparison]
+               he$delta.e <- he$delta.e[,comparison]
+               he$delta.c <- he$delta.c[,comparison]
+               he$n.comparators=length(comparison)+1
+               he$n.comparisons=length(comparison)
+               he$interventions=he$interventions[sort(c(he$ref,he$comp))]
+               he$ICER=he$ICER[comparison]
+               he$ib=he$ib[,,comparison]
+               he$eib=he$eib[,comparison]
+               he$U=he$U[,,sort(c(he$ref,comparison+1))]
+               he$ceac=he$ceac[,comparison]
+               he$ref=rank(c(he$ref,he$comp))[1]
+               he$comp=rank(c(he$ref,he$comp))[-1]
+               he$mod <- TRUE #
                
-               return(ceac.plot(k,pos=alt.legend,graph="ggplot2"))
+               return(ceac.plot(he,pos=alt.legend,graph="ggplot2"))
           }
           
-          ceac <- ceac + theme_bw() + 
-               scale_y_continuous(limits=c(0,1)) +
-               labs(title="Cost-Effectiveness Acceptability Curve",x="Willingness to pay",y="Probability of cost-effectiveness") 
+          ceac <- ceac + ggplot2::theme_bw() + 
+            ggplot2::scale_y_continuous(limits=c(0,1)) +
+            ggplot2::labs(title="Cost-Effectiveness Acceptability Curve",x="Willingness to pay",y="Probability of cost-effectiveness") 
           
           jus <- NULL
           if(isTRUE(alt.legend)) {
                alt.legend="bottom"
-               ceac <- ceac + theme(legend.direction="vertical")
+               ceac <- ceac + ggplot2::theme(legend.direction="vertical")
           }
           else{
                if(is.character(alt.legend)) {
@@ -1076,20 +1229,16 @@ ceac.plot <- function(he,comparison=NULL,pos=c(1,0),graph=c("base","ggplot2")) {
           }
           
           ceac <- ceac + 
-               theme(legend.position=alt.legend,legend.justification=jus,legend.title=element_blank(),legend.background=element_blank()) +
-               theme(text=element_text(size=11),legend.key.size=unit(.66,"lines"),legend.margin=unit(-1.25,"line"),panel.grid=element_blank(),legend.key=element_blank(),legend.text.align=0) +
-               theme(plot.title = element_text(lineheight=1.05, face="bold",size=14.3))
-          
+            ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),
+                           legend.background=ggplot2::element_blank(),text=ggplot2::element_text(size=11),
+                           legend.key.size=grid::unit(.66,"lines"),legend.margin=grid::unit(-1.25,"line"),
+                           panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank(),legend.text.align=0,
+                           plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
           return(ceac)
-          
      } # !base.graphics
-     
 }
-##############################################################################################################
 
-
-
-##############################################################################################################
+###evi.plot###################################################################################################
 ## Plots the EVI
 evi.plot <- function(he,graph=c("base","ggplot2")) {
      options(scipen=10)
@@ -1112,45 +1261,44 @@ evi.plot <- function(he,graph=c("base","ggplot2")) {
           }
      } # base.graphics
      else{
-          if(!isTRUE(require(ggplot2)&require(grid))){
+          if(!isTRUE(requireNamespace("ggplot2",quietly=TRUE)&requireNamespace("grid",quietly=TRUE))){
                message("falling back to base graphics\n")
                evi.plot(he,graph="base"); return(invisible(NULL))
           }
           
-          k <- he
-          rm(he)
+          ### no visible binding note
+          k <- NA_real_
           
-          data.psa <- data.frame(c(k$k),c(k$evi))
-          names(data.psa) <- c("k","evi")
+          data.psa <- with(he,data.frame("k"=c(k),"evi"=c(evi)))
           
-          evi <- ggplot(data.psa, aes(k,evi)) + geom_line() + theme_bw() +
-               labs(title="Expected Value of Information",x="Willingness to pay",y="EVPI") +
-               theme(plot.title=element_text(face="bold"))
+          evi <- ggplot2::ggplot(data.psa, ggplot2::aes(k,evi)) + ggplot2::geom_line() + ggplot2::theme_bw() +
+            ggplot2::labs(title="Expected Value of Information",x="Willingness to pay",y="EVPI") +
+            ggplot2::theme(plot.title=ggplot2::element_text(face="bold"))
           
-          if(length(k$kstar)!=0) {
-               kstars=length(k$kstar)
+          if(length(he$kstar)!=0) {
+               kstars=length(he$kstar)
                evi.at.kstar <- numeric(kstars)
                for(i in 1:kstars) {
-                    evi.at.kstar[i] <- k$evi[which.min(abs(k$k-k$kstar[i]))]
+                    evi.at.kstar[i] <- with(he,evi[which.min(abs(k-kstar[i]))])
                }
                
                for(i in 1:kstars) {
                     evi <- evi +
-                         annotate("segment",x=k$kstar[i],xend=k$kstar[i],y=evi.at.kstar[i],yend=-Inf,linetype=2,colour="grey50") +
-                         annotate("segment",x=k$kstar[i],xend=-Inf,y=evi.at.kstar[i],yend=evi.at.kstar[i],linetype=2,colour="grey50")
+                      ggplot2::annotate("segment",x=he$kstar[i],xend=he$kstar[i],y=evi.at.kstar[i],yend=-Inf,linetype=2,colour="grey50") +
+                      ggplot2::annotate("segment",x=he$kstar[i],xend=-Inf,y=evi.at.kstar[i],yend=evi.at.kstar[i],linetype=2,colour="grey50")
                }
           }
           
           evi <- evi +
-               theme(text=element_text(size=11),legend.key.size=unit(.66,"lines"),legend.margin=unit(-1.25,"line"),panel.grid=element_blank(),legend.key=element_blank()) +
-               theme(plot.title = element_text(lineheight=1.05, face="bold",size=14.3))
-          
+            ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"lines"),
+                           legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),
+                           legend.key=ggplot2::element_blank(),
+                           plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
           return(evi)
      }
 }
-##############################################################################################################
 
-##############################################################################################################
+###plot.bcea##################################################################################################
 ## Plots the main health economics outcomes in just one graph
 plot.bcea <- function(x,comparison=NULL,wtp=25000,pos=FALSE,graph=c("base","ggplot2"),...) {
      options(scipen=10)
@@ -1158,15 +1306,15 @@ plot.bcea <- function(x,comparison=NULL,wtp=25000,pos=FALSE,graph=c("base","ggpl
      
      if(base.graphics) {
           op <- par(mfrow=c(2,2))
-          ceplane.plot(x,comparison=comparison,wtp=wtp,pos=pos,graph="base")
-          eib.plot(x,comparison=comparison,pos=pos,graph="base")
+          ceplane.plot(x,comparison=comparison,wtp=wtp,pos=pos,graph="base",...)
+          eib.plot(x,comparison=comparison,pos=pos,graph="base",...)
           ceac.plot(x,comparison=comparison,pos=pos,graph="base")
           evi.plot(x,graph="base")
           par(op)
      }
      else{
           
-          if(!require(ggplot2) & !require(grid)){
+          if(!requireNamespace("ggplot2",quietly=TRUE) & !requireNamespace("grid",quietly=TRUE)){
                message("falling back to base graphics\n")
                plot.bcea(x,comparison=comparison,wtp=wtp,pos=pos,graph="base",...)
                return(invisible(NULL))
@@ -1174,8 +1322,8 @@ plot.bcea <- function(x,comparison=NULL,wtp=25000,pos=FALSE,graph=c("base","ggpl
           
           ####### multiplot ###### 
           # source: R graphics cookbook
+	  if(requireNamespace("ggplot2",quietly=TRUE) & requireNamespace("grid",quietly=TRUE)){
           multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-               require(grid)
                plots <- c(list(...),plotlist)
                numPlots = length(plots)
                if(is.null(layout)) {
@@ -1185,51 +1333,50 @@ plot.bcea <- function(x,comparison=NULL,wtp=25000,pos=FALSE,graph=c("base","ggpl
                if(numPlots==1) {
                     print(plots[[1]])
                } else {
-                    grid.newpage()
-                    pushViewport(viewport(layout=grid.layout(nrow(layout),ncol(layout))))
+                    grid::grid.newpage()
+                    grid::pushViewport(grid::viewport(layout=grid::grid.layout(nrow(layout),ncol(layout))))
                     
                     for(i in 1:numPlots) {
                          matchidx <- as.data.frame(which(layout==i,arr.ind=TRUE))
-                         print(plots[[i]],vp=viewport(layout.pos.row=matchidx$row,
+                         print(plots[[i]],vp=grid::viewport(layout.pos.row=matchidx$row,
                                                       layout.pos.col=matchidx$col))
                     }
                }
           } #### multiplot end ####
           
-          k <- x
-          rm(x)
-          
-          theme.multiplot <- theme(text=element_text(size=9),legend.key.size=unit(.5,"lines"),legend.margin=unit(-1.25,"line"),panel.grid=element_blank(),legend.key=element_blank(),plot.title=element_text(lineheight=1,face="bold",size=11.5))
+          theme.multiplot <- 
+            ggplot2::theme(text=ggplot2::element_text(size=9),legend.key.size=grid::unit(.5,"lines"),
+                           legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),
+                           legend.key=ggplot2::element_blank(),plot.title=ggplot2::element_text(lineheight=1,face="bold",size=11.5))
           
           exArgs <- list(...)
           for(obj in exArgs)
-               if(is.theme(obj))
+               if(ggplot2::is.theme(obj))
                     theme.multiplot <- theme.multiplot + obj
           
           ceplane.pos <- pos
           if(isTRUE(pos==FALSE)){
                ceplane.pos <- c(1,1.025)
           }
-          ceplane <- ceplane.plot(k,wtp=wtp,pos=ceplane.pos,comparison=comparison,graph="ggplot2",...) +
+          ceplane <- ceplane.plot(x,wtp=wtp,pos=ceplane.pos,comparison=comparison,graph="ggplot2",...) +
                theme.multiplot
-          eib <- eib.plot(k,pos=pos,comparison=comparison,graph="ggplot2",...) +
+          eib <- eib.plot(x,pos=pos,comparison=comparison,graph="ggplot2",...) +
                theme.multiplot
-          ceac <- ceac.plot(k,pos=pos,comparison=comparison,graph="ggplot2") +
+          ceac <- ceac.plot(x,pos=pos,comparison=comparison,graph="ggplot2") +
                theme.multiplot
-          evi <- evi.plot(k,graph="ggplot2") +
+          evi <- evi.plot(x,graph="ggplot2") +
                theme.multiplot
           # then call multiplot
           multiplot(ceplane,ceac,eib,evi,cols=2)
      } # !base.graphics
 }
-##############################################################################################################
+}
 
+###contours##################################################################################################
 
-
-##############################################################################################################
 ## Contour plots for the cost-effectiveness plane
 contour.bcea <- function(x,comparison=1,scale=0.5,nlevels=4,levels=NULL,pos=c(1,0),graph=c("base","ggplot2"),...) {
-     require(MASS)
+     requireNamespace("MASS")
      options(scipen=10)
      # comparison selects which plot should be made
      # by default it is the first possible
@@ -1239,11 +1386,13 @@ contour.bcea <- function(x,comparison=1,scale=0.5,nlevels=4,levels=NULL,pos=c(1,
      
      if(base.graphics){
           
-          if(is.null(comparison))
-               comparison <- 1
+          if(is.null(comparison) | length(comparison) > 1){
+            message("The first available comparison will be selected. To plot multiple comparisons together please use the ggplot2 version. Please see ?contour.bcea for additional details.")
+            comparison <- 1
+          }
           
           if (x$n.comparisons==1) {
-               density <- kde2d(x$delta.e,x$delta.c,n=300,h=c(sd(x$delta.e)/scale,sd(x$delta.c)/scale))
+               density <- MASS::kde2d(x$delta.e,x$delta.c,n=300,h=c(sd(x$delta.e)/scale,sd(x$delta.c)/scale))
                offset <- 1.0
                
                p.ne <- sum(x$delta.e>0 & x$delta.c>0)/x$n.sim
@@ -1286,7 +1435,8 @@ contour.bcea <- function(x,comparison=1,scale=0.5,nlevels=4,levels=NULL,pos=c(1,
           }
           
           if(x$n.comparisons>1) {
-               density <- kde2d(x$delta.e[,comparison],x$delta.c[,comparison],n=300,h=c(sd(x$delta.e[,comparison])/scale,sd(x$delta.c[,comparison])/scale))
+               density <- MASS::kde2d(x$delta.e[,comparison],x$delta.c[,comparison],n=300,
+                                      h=c(sd(x$delta.e[,comparison])/scale,sd(x$delta.c[,comparison])/scale))
                offset <- 1.0
                
                p.ne <- sum(x$delta.e[,comparison]>0 & x$delta.c[,comparison]>0)/x$n.sim
@@ -1331,7 +1481,7 @@ contour.bcea <- function(x,comparison=1,scale=0.5,nlevels=4,levels=NULL,pos=c(1,
           }
      } # if base.graphics
      else{
-          if(!isTRUE(require(ggplot2)&require(grid))){
+          if(!isTRUE(requireNamespace("ggplot2",quietly=TRUE)&requireNamespace("grid",quietly=TRUE))){
                message("falling back to base graphics\n")
                contour.bcea(x,comparison=comparison,scale=scale,nlevels=nlevels,pos=alt.legend,levels=levels,graph="base",...)
                return(invisible(NULL))
@@ -1343,9 +1493,6 @@ contour.bcea <- function(x,comparison=1,scale=0.5,nlevels=4,levels=NULL,pos=c(1,
           # no visible binding note
           delta.e <- delta.c <- e <- z <- y <- hjust <- label <- NULL
           
-          k <- x
-          rm(x)
-          
           if(!is.null(nlevels)){
                nlevels <- round(nlevels)
                if(nlevels<0)
@@ -1354,10 +1501,9 @@ contour.bcea <- function(x,comparison=1,scale=0.5,nlevels=4,levels=NULL,pos=c(1,
                     nlevels <- 1
           }
           
-          
-          if(k$n.comparisons==1) {
-               kd <- data.frame(e=k$delta.e,c=k$delta.c)
-               names(kd) <- c("e","c")
+          if(x$n.comparisons==1) {
+               kd <- with(x,data.frame("e"=delta.e,"c"=delta.c))
+               
                # for scale_x_continuous(oob=)
                do.nothing=function(x,limits) return(x)
                # plot limits
@@ -1367,47 +1513,52 @@ contour.bcea <- function(x,comparison=1,scale=0.5,nlevels=4,levels=NULL,pos=c(1,
                range.c[1] <- ifelse(range.c[1]<0,range.c[1],-range.c[1])
                
                # labels
-               p.ne <- sum(k$delta.e > 0 & k$delta.c > 0)/k$n.sim
+               p.ne <- sum(x$delta.e > 0 & x$delta.c > 0)/x$n.sim
                p.ne <- paste0("Pr(Delta[e]>0, Delta[c]>0)==",format(p.ne,digits=4,nsmall=3))
-               p.nw <- sum(k$delta.e <= 0 & k$delta.c > 0)/k$n.sim
+               p.nw <- sum(x$delta.e <= 0 & x$delta.c > 0)/x$n.sim
                p.nw <- paste0("Pr(Delta[e]<=0, Delta[c]>0)==",format(p.nw,digits=4,nsmall=3))
-               p.sw <- sum(k$delta.e <= 0 & k$delta.c <= 0)/k$n.sim
+               p.sw <- sum(x$delta.e <= 0 & x$delta.c <= 0)/x$n.sim
                p.sw <- paste0("Pr(Delta[e]<=0, Delta[c]<=0)==",format(p.sw,digits=4,nsmall=3))
-               p.se <- sum(k$delta.e > 0 & k$delta.c <= 0)/k$n.sim
+               p.se <- sum(x$delta.e > 0 & x$delta.c <= 0)/x$n.sim
                p.se <- paste0("Pr(Delta[e]>0, Delta[c]<=0)==",format(p.se,digits=4,nsmall=3))
                
                # labels dataframe
-               labels.df <- data.frame(x=c(range.e[2],range.e[1],range.e[1],range.e[2]),y=c(rep(range.c[2],2),rep(range.c[1],2)),label=c(p.ne,p.nw,p.sw,p.se),hjust=as.factor(c(1,0,0,1)))
+               labels.df <- data.frame(
+                 "x"=c(range.e[2],range.e[1],range.e[1],range.e[2]),
+                 "y"=c(rep(range.c[2],2),rep(range.c[1],2)),
+                 "label"=c(p.ne,p.nw,p.sw,p.se),
+                 "hjust"=as.factor(c(1,0,0,1)))
                
                # actual plot
                points.colour="grey"
                if(nlevels==1)
                     points.colour="black"
-               ceplane <- ggplot(kd, aes(e,c)) + geom_hline(aes(yintercept=0),colour="grey") + geom_vline(aes(xintercept=0),colour="grey") +
-                    theme_bw() + geom_point(size=1,color=points.colour) +
-                    scale_x_continuous(limits=range.e,oob=do.nothing) + scale_y_continuous(limits=range.c,oob=do.nothing)
-               if(!is.null(scale)&require(MASS)){
-                    density <- kde2d(k$delta.e,k$delta.c,n=300,h=c(sd(k$delta.e)/scale,sd(k$delta.c)/scale))
-                    densitydf <- data.frame(expand.grid(e=density$x,c=density$y),z=as.vector(density$z))
-                    ceplane <- ceplane + geom_contour(aes(z=z),data=densitydf,colour="black",bins=nlevels)
+               ceplane <- ggplot2::ggplot(kd, ggplot2::aes(e,c)) + ggplot2::geom_hline(ggplot2::aes(yintercept=0),colour="grey") + 
+                 ggplot2::geom_vline(ggplot2::aes(xintercept=0),colour="grey") + ggplot2::theme_bw() + 
+                 ggplot2::geom_point(size=1,color=points.colour) + ggplot2::scale_x_continuous(limits=range.e,oob=do.nothing) + 
+                 ggplot2::scale_y_continuous(limits=range.c,oob=do.nothing)
+               if(!is.null(scale)&requireNamespace("MASS",quietly=TRUE)){
+                    density <- with(x,MASS::kde2d(delta.e,delta.c,n=300,h=c(sd(delta.e)/scale,sd(delta.c)/scale)))
+                    density <- data.frame(expand.grid("e"=density$x,"c"=density$y),"z"=as.vector(density$z))
+                    ceplane <- ceplane + ggplot2::geom_contour(ggplot2::aes(z=z),data=density,colour="black",bins=nlevels)
                }
                else{
-                    ceplane <- ceplane + stat_density2d(color="black")
+                    ceplane <- ceplane + ggplot2::stat_density2d(color="black")
                }
                
                
                ceplane <- ceplane + 
-                    geom_text(data=labels.df,aes(x=x,y=y,hjust=hjust,label=label),parse=TRUE,size=rel(3.5))
+                 ggplot2::geom_text(data=labels.df,ggplot2::aes(x=x,y=y,hjust=hjust,label=label),parse=TRUE,size=ggplot2::rel(3.5))
           }
-          if(k$n.comparisons>1&is.null(comparison)==TRUE) {
+          if(x$n.comparisons>1&is.null(comparison)==TRUE) {
                # creates dataframe for plotting
-               kd <- data.frame(c(k$delta.e),c(k$delta.c))
-               names(kd) <- c("delta.e","delta.c")
-               kd$comparison <- as.factor(sort(rep(1:k$n.comparisons,dim(k$delta.e)[1])))
+               kd <- with(x,data.frame(
+                 "delta.e"=c(delta.e),"delta.c"=c(delta.c),
+                 "comparison"=as.factor(sort(rep(1:n.comparisons,dim(delta.e)[1])))))
                
                # vector of values for color, take out white, get integer values
-               colors.label <- paste0("gray",round(seq(0,100,length.out=(k$n.comparisons+1))[-(k$n.comparisons+1)]))
-               comparisons.label <- paste0(k$interventions[k$ref]," vs ",k$interventions[k$comp])
+               colors.label <- paste0("gray",round(seq(0,100,length.out=(x$n.comparisons+1))[-(x$n.comparisons+1)]))
+               comparisons.label <- paste0(x$interventions[x$ref]," vs ",x$interventions[x$comp])
                do.nothing=function(x,limits) return(x)
                # plot limits
                range.e <- range(kd$delta.e)
@@ -1416,68 +1567,66 @@ contour.bcea <- function(x,comparison=1,scale=0.5,nlevels=4,levels=NULL,pos=c(1,
                range.c[1] <- ifelse(range.c[1]<0,range.c[1],-range.c[1])
                
                ceplane <-
-                    ggplot(kd,aes(x=delta.e,y=delta.c,col=comparison)) +
-                    geom_hline(yintercept=0,colour="grey") + geom_vline(xintercept=0,colour="grey") + theme_bw() +
-                    geom_point(size=1) +
-                    scale_color_manual(label=comparisons.label,values=colors.label,na.value="black") +
-                    scale_x_continuous(limits=range.e,oob=do.nothing) +
-                    scale_y_continuous(limits=range.c,oob=do.nothing)
+                 ggplot2::ggplot(kd,ggplot2::aes(x=delta.e,y=delta.c,col=comparison)) +
+                 ggplot2::geom_hline(yintercept=0,colour="grey") + ggplot2::geom_vline(xintercept=0,colour="grey") + ggplot2::theme_bw() +
+                 ggplot2::geom_point(size=1) +
+                 ggplot2::scale_color_manual(label=comparisons.label,values=colors.label,na.value="black") +
+                 ggplot2::scale_x_continuous(limits=range.e,oob=do.nothing) +
+                 ggplot2::scale_y_continuous(limits=range.c,oob=do.nothing)
                
-               if(!is.null(scale)&require(MASS)) {
-                    require(MASS)
+               if(!is.null(scale)&requireNamespace("MASS",quietly=TRUE)) {
                     densitydf <- data.frame()
-                    for(i in 1:k$n.comparison) {
-                         temp <- kde2d(k$delta.e[,i],k$delta.c[,i],n=300,h=c(sd(k$delta.e[,i])/scale,sd(k$delta.c[,i])/scale))
-                         temp <- data.frame(expand.grid(e=temp$x,c=temp$y),z=as.vector(temp$z))
+                    for(i in 1:x$n.comparison) {
+                         temp <- with(x,MASS::kde2d(delta.e[,i],delta.c[,i],n=300,h=c(sd(delta.e[,i])/scale,sd(delta.c[,i])/scale)))
+                         temp <- data.frame(expand.grid("e"=temp$x,"c"=temp$y),"z"=as.vector(temp$z))
                          densitydf <- rbind(densitydf,cbind(temp,rep(i,dim(temp)[[1]])))
                     }
                     names(densitydf) <- c("delta.e","delta.c","z","comparison")
                     densitydf$comparison <- as.factor(densitydf$comparison)
-                    ceplane <- ceplane + geom_contour(aes(z=z,colour=comparison),data=densitydf,bins=nlevels) +
-                         guides(colour=guide_legend(override.aes=list(linetype=0)))
+                    ceplane <- ceplane + ggplot2::geom_contour(ggplot2::aes(z=z,colour=comparison),data=densitydf,bins=nlevels) +
+                      ggplot2::guides(colour=ggplot2::guide_legend(override.aes=list(linetype=0)))
                }
                else{
-                    ceplane <- ceplane + stat_density2d() + 
-                         guides(colour=guide_legend(override.aes=list(linetype=0)))
+                    ceplane <- ceplane + ggplot2::stat_density2d() + 
+                      ggplot2::guides(colour=ggplot2::guide_legend(override.aes=list(linetype=0)))
                }
           }
-          
-          if(k$n.comparisons>1&is.null(comparison)==FALSE) {
+          if(x$n.comparisons>1&is.null(comparison)==FALSE) {
                # adjusts bcea object for the correct number of dimensions and comparators
-               k$comp <- k$comp[comparison]
-               k$delta.e <- k$delta.e[,comparison]
-               k$delta.c <- k$delta.c[,comparison]
-               k$n.comparators=length(comparison)+1
-               k$n.comparisons=length(comparison)
-               k$interventions=k$interventions[sort(c(k$ref,k$comp))]
-               k$ICER=k$ICER[comparison]
-               k$ib=k$ib[,,comparison]
-               k$eib=k$eib[,comparison]
-               k$U=k$U[,,sort(c(k$ref,comparison+1))]
-               k$ceac=k$ceac[,comparison]
-               k$ref=rank(c(k$ref,k$comp))[1]
-               k$comp=rank(c(k$ref,k$comp))[-1]
-               k$mod <- TRUE #
+               x$comp <- x$comp[comparison]
+               x$delta.e <- x$delta.e[,comparison]
+               x$delta.c <- x$delta.c[,comparison]
+               x$n.comparators=length(comparison)+1
+               x$n.comparisons=length(comparison)
+               x$interventions=x$interventions[sort(c(x$ref,x$comp))]
+               x$ICER=x$ICER[comparison]
+               x$ib=x$ib[,,comparison]
+               x$eib=x$eib[,comparison]
+               x$U=x$U[,,sort(c(x$ref,comparison+1))]
+               x$ceac=x$ceac[,comparison]
+               x$ref=rank(c(x$ref,x$comp))[1]
+               x$comp=rank(c(x$ref,x$comp))[-1]
+               x$mod <- TRUE #
                
-               return(contour.bcea(k,scale=scale,pos=alt.legend,nlevels=nlevels,graph="ggplot2",comparison=NULL))
+               return(contour.bcea(x,scale=scale,pos=alt.legend,nlevels=nlevels,graph="ggplot2",comparison=NULL))
           }
           
           labs.title <- "Cost-Effectiveness Plane"
           labs.title <- paste0(labs.title,
-                               ifelse(k$n.comparisons==1,
-                                      paste0("\n",k$interventions[k$ref]," vs ",k$interventions[-k$ref]),
+                               ifelse(x$n.comparisons==1,
+                                      paste0("\n",x$interventions[x$ref]," vs ",x$interventions[-x$ref]),
                                       paste0(
-                                           ifelse(isTRUE(k$mod),
-                                                  paste0("\n",k$interventions[k$ref]," vs ",
-                                                         paste0(k$interventions[k$comp],collapse=", ")),
+                                           ifelse(isTRUE(x$mod),
+                                                  paste0("\n",x$interventions[x$ref]," vs ",
+                                                         paste0(x$interventions[x$comp],collapse=", ")),
                                                   ""))))
           
-          ceplane <- ceplane + labs(title=labs.title,x="Effectiveness differential",y="Cost differential")
+          ceplane <- ceplane + ggplot2::labs(title=labs.title,x="Effectiveness differential",y="Cost differential")
           
           jus <- NULL
           if(isTRUE(alt.legend)) {
                alt.legend="bottom"
-               ceplane <- ceplane + theme(legend.direction="vertical")
+               ceplane <- ceplane + ggplot2::theme(legend.direction="vertical")
           }
           else{
                if(is.character(alt.legend)) {
@@ -1496,15 +1645,15 @@ contour.bcea <- function(x,comparison=1,scale=0.5,nlevels=4,levels=NULL,pos=c(1,
           }
           
           ceplane <- ceplane + 
-               theme(legend.position=alt.legend,legend.justification=jus,legend.title=element_blank(),legend.background=element_blank()) +
-               theme(text=element_text(size=11),legend.key.size=unit(.66,"lines"),legend.margin=unit(-1.25,"line"),panel.grid=element_blank(),legend.key=element_blank(),legend.text.align=0) +
-               theme(plot.title = element_text(lineheight=1.05, face="bold",size=14.3))
-          
+            ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),
+                           legend.background=ggplot2::element_blank(),text=ggplot2::element_text(size=11),
+                           legend.key.size=grid::unit(.66,"lines"),legend.margin=grid::unit(-1.25,"line"),
+                           panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank(),legend.text.align=0,
+                           plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
           return(ceplane)
      } # !base.graphics
 }
 
-##############################################################################################################
 contour2 <- function(he,wtp=25000,xl=NULL,yl=NULL,comparison=NULL,graph=c("base","ggplot2"),...) {
      # Forces R to avoid scientific format for graphs labels
      options(scipen=10)
@@ -1517,8 +1666,10 @@ contour2 <- function(he,wtp=25000,xl=NULL,yl=NULL,comparison=NULL,graph=c("base"
           pdf.options(encoding="CP1250")
           
           # Selects the first comparison by default if not selected
-          if(is.null(comparison))
-               comparison <- 1
+          if(is.null(comparison) | length(comparison) > 1){
+            message("The first available comparison will be selected. To plot multiple comparisons together please use the ggplot2 version. Please see ?contour2 for additional details.")
+            comparison <- 1
+          }
           
           ## Selects the correct values for the case of multiple comparisons
           if (he$n.comparisons>1) {
@@ -1565,12 +1716,12 @@ contour2 <- function(he,wtp=25000,xl=NULL,yl=NULL,comparison=NULL,graph=c("base"
           text(x.pt,y.pt,parse(text=t1),cex=.8,pos=4)
           
           # And then plots the contour
-          require(MASS)
+          requireNamespace("MASS")
           offset <- 1.0
           nlevels <- 4
           scale <- 0.5
           
-          density <- kde2d(he$delta.e,he$delta.c,n=300,h=c(sd(he$delta.e)/scale,sd(he$delta.c)/scale))
+          density <- MASS::kde2d(he$delta.e,he$delta.c,n=300,h=c(sd(he$delta.e)/scale,sd(he$delta.c)/scale))
           
           m.c <- range(he$delta.c)[1]; M.c <- range(he$delta.c)[2]
           m.e <- range(he$delta.e)[1]; M.e <- range(he$delta.e)[2]
@@ -1587,59 +1738,56 @@ contour2 <- function(he,wtp=25000,xl=NULL,yl=NULL,comparison=NULL,graph=c("base"
      } # end if base.graphics
      else{
           
-          if(!isTRUE(require(ggplot2)&require(grid))){
+          if(!isTRUE(requireNamespace("ggplot2",quietly=TRUE)&requireNamespace("grid",quietly=TRUE))){
                message("falling back to base graphics\n")
                contour2(he,comparison=comparison,xl=xl,yl=yl,wtp=wtp,graph="base"); return(invisible(NULL))
           }
-          
-          # no visible binding note
-          z <- e <- NULL
-          
-          k <- he
-          rm(he)
           scale=0.5
           nlevels=5
           
-          require(MASS)
+          requireNamespace("MASS")
           
-          if(k$n.comparisons==1) {
-               density <- kde2d(k$delta.e,k$delta.c,n=300,h=c(sd(k$delta.e)/scale,sd(k$delta.c)/scale))
-               densitydf <- data.frame(expand.grid(e=density$x,c=density$y),z=as.vector(density$z))
-               contour <- ceplane.plot(k,wtp=wtp,graph="ggplot2",...) +
-                    geom_contour(aes(z=z,x=e,y=c),data=densitydf,colour="black",bins=nlevels)
+          ### no visible binding note
+          z <- e <- NA_real_
+          
+          if(he$n.comparisons==1) {
+               density <- with(he,MASS::kde2d(delta.e,delta.c,n=300,h=c(sd(delta.e)/scale,sd(delta.c)/scale)))
+               density <- data.frame(expand.grid("e"=density$x,"c"=density$y),"z"=as.vector(density$z))
+               contour <- ceplane.plot(he,wtp=wtp,graph="ggplot2",...) +
+                 ggplot2::geom_contour(ggplot2::aes(z=z,x=e,y=c),data=density,colour="black",bins=nlevels)
           }
-          if(k$n.comparisons>1&is.null(comparison)) {
+          if(he$n.comparisons>1&is.null(comparison)) {
                densitydf <- data.frame()
-               for(i in 1:k$n.comparisons) {
-                    density <- kde2d(k$delta.e[,i],k$delta.c[,i],n=300,h=c(sd(k$delta.e)/scale,sd(k$delta.c)/scale))
+               for(i in 1:he$n.comparisons) {
+                    density <- with(he,MASS::kde2d(delta.e[,i],delta.c[,i],n=300,h=c(sd(delta.e[,i])/scale,sd(delta.c[,i])/scale)))
                     densitydf <- rbind(densitydf,cbind(expand.grid(density$x,density$y),as.vector(density$z)))
                }
                names(densitydf) <- c("e","c","z")
-               densitydf <- cbind(densitydf,"comparison"=as.factor(sort(rep(1:k$n.comparisons,dim(densitydf)[1]/k$n.comparisons))))
-               contour <- ceplane.plot(k,wtp=wtp,graph="ggplot2",...) +
-                    geom_contour(data=densitydf,aes(x=e,y=c,z=z,colour=comparison),bins=nlevels,linetype=1)
+               densitydf <- cbind(densitydf,"comparison"=as.factor(sort(rep(1:he$n.comparisons,dim(densitydf)[1]/he$n.comparisons))))
+               contour <- ceplane.plot(he,wtp=wtp,graph="ggplot2",...) +
+                 ggplot2::geom_contour(data=densitydf,ggplot2::aes(x=e,y=c,z=z,colour=comparison),bins=nlevels,linetype=1)
           }
-          if(k$n.comparisons>1&!is.null(comparison)) {
+          if(he$n.comparisons>1&!is.null(comparison)) {
                # adjusts bcea object for the correct number of dimensions and comparators
-               k$comp <- k$comp[comparison]
-               k$delta.e <- k$delta.e[,comparison]
-               k$delta.c <- k$delta.c[,comparison]
-               k$n.comparators=length(comparison)+1
-               k$n.comparisons=length(comparison)
-               k$interventions=k$interventions[sort(c(k$ref,k$comp))]
-               k$ICER=k$ICER[comparison]
-               k$ib=k$ib[,,comparison]
-               k$eib=k$eib[,comparison]
-               k$U=k$U[,,sort(c(k$ref,comparison+1))]
-               k$ceac=k$ceac[,comparison]
-               k$ref=rank(c(k$ref,k$comp))[1]
-               k$comp=rank(c(k$ref,k$comp))[-1]
-               k$mod <- TRUE #
+               he$comp <- he$comp[comparison]
+               he$delta.e <- he$delta.e[,comparison]
+               he$delta.c <- he$delta.c[,comparison]
+               he$n.comparators=length(comparison)+1
+               he$n.comparisons=length(comparison)
+               he$interventions=he$interventions[sort(c(he$ref,he$comp))]
+               he$ICER=he$ICER[comparison]
+               he$ib=he$ib[,,comparison]
+               he$eib=he$eib[,comparison]
+               he$U=he$U[,,sort(c(he$ref,comparison+1))]
+               he$ceac=he$ceac[,comparison]
+               he$ref=rank(c(he$ref,he$comp))[1]
+               he$comp=rank(c(he$ref,he$comp))[-1]
+               he$mod <- TRUE #
                
-               return(contour2(k,wtp=wtp,xl=xl,yl=yl,comparison=NULL,graph="ggplot2",...))
+               return(contour2(he,wtp=wtp,xl=xl,yl=yl,comparison=NULL,graph="ggplot2",...))
           }
-          
-          contour <- contour + coord_cartesian(xlim=xl,ylim=yl)
+
+          contour <- contour + ggplot2::coord_cartesian(xlim=xl,ylim=yl)
           return(contour)
      } # end if !base.graphics
      
@@ -1647,11 +1795,9 @@ contour2 <- function(he,wtp=25000,xl=NULL,yl=NULL,comparison=NULL,graph=c("base"
 
 
 
-##############################################################################################################
+###CEriskav###################################################################################################
 CEriskav <- function(he,r=NULL,comparison=1) UseMethod("CEriskav")
 
-
-##############################################################################################################
 CEriskav.default <- function(he,r=NULL,comparison=1) {
      ### COMPARISON IS USED TO SELECT THE COMPARISON FOR WHICH THE ANALYSIS IS CARRIED OUT!!!
      # Reference: Baio G, Dawid AP (2011).
@@ -1697,11 +1843,8 @@ CEriskav.default <- function(he,r=NULL,comparison=1) {
      class(cr) <- "CEriskav"
      cr
 }
-##############################################################################################################
 
-
-
-##############################################################################################################
+###plot.CEriskav##################################################################################################
 # Plots the EIB for the risk aversion case
 plot.CEriskav <- function(x,pos=c(0,1),graph=c("base","ggplot2"),...) {
      options(scipen=10)
@@ -1780,13 +1923,13 @@ plot.CEriskav <- function(x,pos=c(0,1),graph=c("base","ggplot2"),...) {
           
      } # base.graphics
      else{
-          if(!isTRUE(require(ggplot2)&require(grid))) {
+          if(!isTRUE(requireNamespace("ggplot2",quietly=TRUE)&requireNamespace("grid",quietly=TRUE))) {
                message("falling back to base graphics\n")
                plot.CEriskav(x,graph="base",pos=pos,...)
                return(invisible(NULL))
           }
           # no visible bindings note
-          k <- r <- NULL
+          k <- r <- NA_real_
           
           linetypes <- rep(c(1,2,3,4,5,6),ceiling(x$R/6))[1:x$R]
           df <- data.frame(cbind(rep(x$k,x$R),c(x$eibr),c(x$evir)),as.factor(sort(rep(1:x$R,length(x$k)))))
@@ -1799,20 +1942,24 @@ plot.CEriskav <- function(x,pos=c(0,1),graph=c("base","ggplot2"),...) {
                text[1] <- expression(r%->%0)
           }
           
-          eibr <- ggplot(df,aes(x=k,y=eibr,linetype=r))+geom_hline(yintercept=0,linetype=1,colour="grey50")+geom_line()+scale_linetype_manual("",labels=text,values=linetypes)+theme_bw() +
-               labs(title="EIB as a function of the risk aversion parameter",x="Willingness to pay",y="EIB") +
-               theme(text=element_text(size=11),legend.key.size=unit(.66,"line"),legend.margin=unit(-1.25,"line"),panel.grid=element_blank(),legend.key=element_blank())
+          eibr <- ggplot2::ggplot(df,ggplot2::aes(x=k,y=eibr,linetype=r))+
+            ggplot2::geom_hline(yintercept=0,linetype=1,colour="grey50")+ggplot2::geom_line()+
+            ggplot2::scale_linetype_manual("",labels=text,values=linetypes)+ggplot2::theme_bw() +
+            ggplot2::labs(title="EIB as a function of the risk aversion parameter",x="Willingness to pay",y="EIB") +
+            ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"line"),
+                           legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank())
           
           ### evir ###
-          evir <- ggplot(df,aes(x=k,y=evir,linetype=r))+geom_hline(yintercept=0,linetype=1,colour="grey50")+geom_line()+scale_linetype_manual("",labels=text,values=linetypes)+theme_bw() +
-               labs(title="EVPI as a function of the risk aversion parameter",x="Willingness to pay",y="EVPI") +
-               theme(text=element_text(size=11),legend.key.size=unit(.66,"line"),legend.margin=unit(-1.25,"line"),panel.grid=element_blank(),legend.key=element_blank())
-          
+          evir <- ggplot2::ggplot(df,ggplot2::aes(x=k,y=evir,linetype=r))+ggplot2::geom_hline(yintercept=0,linetype=1,colour="grey50")+
+            ggplot2::geom_line()+ggplot2::scale_linetype_manual("",labels=text,values=linetypes)+ggplot2::theme_bw() +
+            ggplot2::labs(title="EVPI as a function of the risk aversion parameter",x="Willingness to pay",y="EVPI") +
+            ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"line"),
+                           legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank())
           jus <- NULL
           if(isTRUE(alt.legend)) {
                alt.legend="bottom"
-               eibr <- eibr + theme(legend.direction="vertical")
-               evir <- evir + theme(legend.direction="vertical")
+               eibr <- eibr + ggplot2::theme(legend.direction="vertical")
+               evir <- evir + ggplot2::theme(legend.direction="vertical")
           }
           else{
                if(is.character(alt.legend)) {
@@ -1831,13 +1978,14 @@ plot.CEriskav <- function(x,pos=c(0,1),graph=c("base","ggplot2"),...) {
           }
           
           eibr <- eibr + 
-               theme(legend.position=alt.legend,legend.justification=jus,legend.title=element_blank(),legend.background=element_blank(),plot.title=element_text(face="bold"),legend.text.align=0) +
-               theme(plot.title = element_text(lineheight=1.05, face="bold",size=14.3))
+            ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),
+                           legend.background=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold"),legend.text.align=0,
+                           plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
           
           evir <- evir + 
-               theme(legend.position=alt.legend,legend.justification=jus,legend.title=element_blank(),legend.background=element_blank(),plot.title=element_text(face="bold"),legend.text.align=0) +
-               theme(plot.title = element_text(lineheight=1.05, face="bold",size=14.3))
-          
+            ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),
+                           legend.background=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold"),
+                           legend.text.align=0,plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
           plot(eibr)
           
           if(is.null(howplot)) {
@@ -1867,11 +2015,9 @@ plot.CEriskav <- function(x,pos=c(0,1),graph=c("base","ggplot2"),...) {
 }
 
 
-##############################################################################################################
+###mixedAn####################################################################################################
 mixedAn <- function(he,mkt.shares=NULL,plot=FALSE) UseMethod("mixedAn")
 
-
-##############################################################################################################
 mixedAn.default <- function(he,mkt.shares=NULL,plot=FALSE) {
      # mkt.shares is a vector of market shares for each comparators
      # if no value is provided, then assumes uniform distribution
@@ -1903,11 +2049,8 @@ mixedAn.default <- function(he,mkt.shares=NULL,plot=FALSE) {
      }
      return(ma)
 }
-##############################################################################################################
 
-
-
-##############################################################################################################
+###summary.mixedAn############################################################################################
 summary.mixedAn <- function(object,wtp=25000,...) {
      if(max(object$k)<wtp) {
           wtp <- max(object$k)
@@ -1945,11 +2088,8 @@ summary.mixedAn <- function(object,wtp=25000,...) {
                format(object$evi.star[object$k==wtp]-object$evi[object$k==wtp],digits=n.digits,nsmall=n.small),"\n",sep=""))
      cat("\n")
 }
-##############################################################################################################
 
-
-
-##############################################################################################################
+###plot.mixedAn###############################################################################################
 plot.mixedAn <- function(x,y.limits=NULL,pos=c(0,1),graph=c("base","ggplot2"),...) {
      ## Plot the EVPI and the mixed strategy
      options(scipen=10)
@@ -1995,32 +2135,35 @@ plot.mixedAn <- function(x,y.limits=NULL,pos=c(0,1),graph=c("base","ggplot2"),..
           legend(alt.legend,txt,col=cols,cex=.6,bty="n",lty=1)
      } # base.graphics
      else {
-          if(!isTRUE(require(ggplot2)&require(grid))) {
-               message("falling back to base graphics\n")
+          if(!isTRUE(requireNamespace("ggplot2",quietly=TRUE)&requireNamespace("grid",quietly=TRUE))) {
+               message("Falling back to base graphics\n")
                plot.mixedAn(x,y.limits=y.limits,pos=pos,graph="base")
                return(invisible(NULL))
           } 
-          # no visible bindings note
-          k <- evi.star <- NULL
+          
+	  if(isTRUE(requireNamespace("ggplot2",quietly=TRUE)&requireNamespace("grid",quietly=TRUE))) {
+          ### no visible binding note
+          k <- evi.star <- NA_real_
           
           # legend
           txt <- c("Optimal strategy",paste0("Mixed strategy:", paste0("\n   ",x$interventions,"=",format(100*x$mkt.shares,digits=3,nsmall=2),"%",collapse="")))
           colours=c("black","red")
           
-          df <- data.frame(k=x$k,evi=x$evi,evi.star=x$evi.star)
-          evi <- ggplot(df) + theme_bw() +
-               geom_ribbon(aes(x=k,ymin=evi,ymax=evi.star),colour="lightgrey",alpha=.2) +
-               geom_line(aes(x=k,y=evi,colour=as.factor(1))) +
-               geom_line(aes(x=k,y=evi.star,colour=as.factor(2))) +
-               coord_cartesian(ylim=y.limits) +
-               scale_colour_manual("",labels=txt,values=colours) +
-               labs(title="Expected Value of Information",x="Willingness to pay",y="EVPI") +
-               theme(text=element_text(size=11),legend.key.size=unit(.66,"lines"),legend.margin=unit(-1.25,"line"),panel.grid=element_blank(),legend.key=element_blank(),plot.title=element_text(face="bold"))
-          
+          df <- data.frame("k"=x$k,"evi"=x$evi,"evi.star"=x$evi.star)
+          evi <- ggplot2::ggplot(df,ggplot2::aes(x=k)) + ggplot2::theme_bw() +
+            ggplot2::geom_ribbon(ggplot2::aes(x=k,ymin=evi,ymax=evi.star),colour="lightgrey",alpha=.2) +
+            ggplot2::geom_line(ggplot2::aes(x=k,y=evi,colour=as.factor(1))) +
+            ggplot2::geom_line(ggplot2::aes(x=k,y=evi.star,colour=as.factor(2))) +
+            ggplot2::coord_cartesian(ylim=y.limits) +
+            ggplot2::scale_colour_manual("",labels=txt,values=colours) +
+            ggplot2::labs(title="Expected Value of Information",x="Willingness to pay",y="EVPI") +
+            ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"lines"),
+                           legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),
+                           legend.key=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold"))
           jus <- NULL
           if(isTRUE(alt.legend)) {
                alt.legend="bottom"
-               evi <- evi + theme(legend.direction="vertical")
+               evi <- evi + ggplot2::theme(legend.direction="vertical")
           }
           else{
                if(is.character(alt.legend)) {
@@ -2039,16 +2182,13 @@ plot.mixedAn <- function(x,y.limits=NULL,pos=c(0,1),graph=c("base","ggplot2"),..
           }
           
           evi <- evi + 
-               theme(legend.position=alt.legend,legend.justification=jus,legend.title=element_blank(),legend.background=element_blank(),plot.title=element_text(face="bold"),legend.text.align=0) +
-               theme(plot.title = element_text(lineheight=1.05, face="bold",size=14.3))
-          
+            ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),
+                           legend.background=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold"),
+                           legend.text.align=0,plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
           return(evi)
      }
 }
-##############################################################################################################
-
-
-
+}
 
 #####multi.ce##################################################################################################
 multi.ce <- function(he){
@@ -2077,7 +2217,6 @@ multi.ce <- function(he){
 
 ############mce.plot###################################
 mce.plot <- function(mce,pos=c(1,0.5),graph=c("base","ggplot2")){
-     
      alt.legend <- pos
      base.graphics <- ifelse(isTRUE(pmatch(graph,c("base","ggplot2"))==2),FALSE,TRUE) 
      
@@ -2120,34 +2259,36 @@ mce.plot <- function(mce,pos=c(1,0.5),graph=c("base","ggplot2")){
           legend(alt.legend,mce$interventions,col=color,cex=.7,bty="n",lty=1:mce$n.comparators)
      } # base graphics
      else{
-          if(!isTRUE(require(ggplot2)&require(grid))) {
-               message("falling back to base graphics\n")
+          if(!isTRUE(requireNamespace("ggplot2",quietly=TRUE)&requireNamespace("grid",quietly=TRUE))) {
+               message("Falling back to base graphics\n")
                mce.plot(mce,pos=pos,graph="base")
                return(invisible(NULL))
           }
+
+          if(isTRUE(requireNamespace("ggplot2",quietly=TRUE)&requireNamespace("grid",quietly=TRUE))) {
           # no visible bindings note
-          k <- ce <- comp <- ceplane <- NULL
+          ceplane <- k <- ce <- comp <- NA_real_
           
           alt.legend <- pos
           lty <- rep(1:6,ceiling(mce$n.comparators/6))[1:mce$n.comparators]
-          col <- paste0("gray",round(seq(0,100,length.out=mce$n.comparators+1))[-(mce$n.comparators+1)])
           label <- paste0(mce$interventions)
           
-          df <- cbind(rep(mce$k,mce$n.comparators),c(mce$m.ce))
-          df <- data.frame(df,as.factor(sort(rep(1:mce$n.comparators,length(mce$k)))))
+          df <- cbind("k"=rep(mce$k,mce$n.comparators),"ce"=c(mce$m.ce))
+          df <- data.frame(df,"comp"=as.factor(sort(rep(1:mce$n.comparators,length(mce$k)))))
           names(df) <- c("k","ce","comp")
           
-          mceplot <- ggplot(df) + theme_bw() +
-               geom_line(aes(x=k,y=ce,colour=comp,linetype=comp)) + 
-               scale_colour_manual("",labels=label,values=col) +
-               scale_linetype_manual("",labels=label,values=lty) +
-               labs(title="Cost-effectiveness acceptability curve\nfor multiple comparisons",x="Willingness to pay",y="Probabiity of most cost effectiveness") +
-               theme(text=element_text(size=11),legend.key.size=unit(.66,"lines"),legend.margin=unit(-1.25,"line"),panel.grid=element_blank(),legend.key=element_blank(),plot.title=element_text(face="bold"))
+          mceplot <- ggplot2::ggplot(df,ggplot2::aes(x=k,y=ce)) + ggplot2::theme_bw() +
+            ggplot2::geom_line(ggplot2::aes(linetype=comp)) + 
+            ggplot2::scale_linetype_manual("",labels=label,values=lty) +
+            ggplot2::labs(title="Cost-effectiveness acceptability curve\nfor multiple comparisons",x="Willingness to pay",y="Probability of most cost effectiveness") +
+            ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"lines"),
+                           legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),
+                           legend.key=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold"))
           
           jus <- NULL
           if(isTRUE(alt.legend)) {
                alt.legend="bottom"
-               mceplot <- ceplane + theme(legend.direction="vertical")
+               mceplot <- mceplot + ggplot2::theme(legend.direction="vertical")
           }
           else{
                if(is.character(alt.legend)) {
@@ -2165,12 +2306,13 @@ mce.plot <- function(mce,pos=c(1,0.5),graph=c("base","ggplot2")){
                }
           }
           
-          mceplot <- mceplot + coord_cartesian(ylim=c(0,1)) +
-               theme(legend.position=alt.legend,legend.justification=jus,legend.title=element_blank(),legend.background=element_blank(),plot.title=element_text(face="bold"),legend.text.align=0) +
-               theme(plot.title = element_text(lineheight=1.05, face="bold",size=14.3))
-          
+          mceplot <- mceplot + ggplot2::coord_cartesian(ylim=c(-0.05,1.05)) +
+            ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),
+                           legend.background=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold"),
+                           legend.text.align=0,plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
           return(mceplot)
      }
+}
 }
 
 #######################ceaf.plot##################################
@@ -2183,22 +2325,21 @@ ceaf.plot <- function(mce,graph=c("base","ggplot2")){
                main="Cost-effectiveness acceptability frontier")
      }
      else{
-          if(!isTRUE(require(ggplot2)&require(grid))){
-               message("falling back to base graphics\n")
+          if(!isTRUE(requireNamespace("ggplot2",quietly=TRUE)&requireNamespace("grid",quietly=TRUE))){
+               message("Falling back to base graphics\n")
                ceaf.plot(mce,graph="base")
                return(invisible(NULL))
           }
+          
           # no visible binding note
-          k <- NULL
+          k  <- NA_real_
           
-          df <- data.frame(k=mce$k,ceaf=mce$ceaf)
-          ceaf <- ggplot(df) + theme_bw() +
-               geom_line(aes(x=k,y=ceaf)) +
-               coord_cartesian(ylim=c(0,1)) +
-               theme(text=element_text(size=11),legend.key.size=unit(.66,"lines"),legend.margin=unit(-1.25,"line"),panel.grid=element_blank(),legend.key=element_blank(),plot.title=element_text(face="bold")) +
-               labs(title="Cost-effectiveness acceptability frontier",x="Willingness to pay",y="Probability of most cost effectiveness") +
-               theme(plot.title = element_text(lineheight=1.05, face="bold",size=14.3))
-          
+          df <- data.frame("k"=mce$k,"ceaf"=mce$ceaf)
+          ceaf <- ggplot2::ggplot(df,ggplot2::aes(x=k,y=ceaf)) + ggplot2::theme_bw() +
+            ggplot2::geom_line() + ggplot2::coord_cartesian(ylim=c(-0.05,1.05)) +
+            ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"lines"),legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold")) +
+            ggplot2::labs(title="Cost-effectiveness acceptability frontier",x="Willingness to pay",y="Probability of most cost-effectiveness") +
+            ggplot2::theme(plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
           return(ceaf)
      }
 }
@@ -2491,7 +2632,7 @@ multi.evppi <- function(regr.mod,inputs,he,mcsim=1) {
           stop("You have selected the method of Strong and Oakley (multivariate).\n  Please specify the form of the non-parametric regression")
      }
      
-     require(mgcv); require(MASS)
+     requireNamespace("mgcv"); requireNamespace("MASS")
      # Creates a label for the combination of parameters being used
      # This is useful to the call to the function plot for the resulting evppi object
      pars <- gsub("s(","",regr.mod,fixed=TRUE)
@@ -2522,16 +2663,16 @@ multi.evppi <- function(regr.mod,inputs,he,mcsim=1) {
           # Now, for each k puts the incremental benefits in the matrix IB
           # If D=1, then there is only one row (one decision) and n.sim columns
           if (D==1) {
-               IB[,1] <- he$ib[k,]
+               IB[,1] <- -he$ib[k,]
           } else {
                # If there are more decisions, then there are D rows
-               IB <- he$ib[k,,]
+               IB <- -he$ib[k,,]
           }
           
           g.hat <- beta.hat <- Xstar <- V <- tilde.g <- resd <- vector("list",D)
           for(d in 1:D) {
                f <- update(formula(IB[,d]~.),formula(paste(".~",regr.mod)))
-               model <- gam(f,data=data.frame(inputs)) 
+               model <- mgcv::gam(f,data=data.frame(inputs)) 
                g.hat[[d]] <- model$fitted.values
                
                # Compute residuals for all decisions and for a given value of k
@@ -2542,7 +2683,7 @@ multi.evppi <- function(regr.mod,inputs,he,mcsim=1) {
                     beta.hat[[d]] <- model$coefficients
                     Xstar[[d]] <- predict(model,type="lpmatrix")
                     V[[d]] <- model$Vp
-                    sampled.coef <- mvrnorm(mcsim,beta.hat[[d]],V[[d]])
+                    sampled.coef <- MASS::mvrnorm(mcsim,beta.hat[[d]],V[[d]])
                     tilde.g[[d]] <- sampled.coef%*%t(Xstar[[d]])  
                }
           }
@@ -2627,7 +2768,7 @@ diag.evppi <- function(x,k=NULL,t=1,diag=c("residuals","qqplot","bias","se")) {
 plot.evppi <- function(x,pos=c(0,0.8),graph=c("base","ggplot2"),col=NULL,...) {
      # Plots the EVPI and the EVPPI for all the parameters being monitored
      # x is a "evppi" object obtained by a call to the function evppi
-     # col is a vector specifying the colors to be used in the graps
+     # col is a vector specifying the colors to be used in the graphs
      #     if null, then all are in black
      options(scipen=10)
      alt.legend <- pos
@@ -2687,13 +2828,13 @@ plot.evppi <- function(x,pos=c(0,0.8),graph=c("base","ggplot2"),col=NULL,...) {
           return(invisible(NULL))
      }
      else{
-          if(!isTRUE(require(ggplot2)&require(grid))) {
-               message("falling back to base graphics\n")
+          if(!isTRUE(requireNamespace("ggplot2",quietly=TRUE)&requireNamespace("grid",quietly=TRUE))) {
+               message("Falling back to base graphics\n")
                plot.evppi(x,pos=c(0,0.8),graph="base",col)
                return(invisible(NULL))
           }
           else {
-               message("ggplot2 not implemented yet for this function: falling back to base graphics\n")
+               message("ggplot2 method not yet implemented for this function: falling back to base graphics\n")
                plot.evppi(x,pos=c(0,0.8),graph="base",col)
                return(invisible(NULL))
           }
@@ -2705,7 +2846,7 @@ plot.evppi <- function(x,pos=c(0,0.8),graph=c("base","ggplot2"),col=NULL,...) {
 CreateInputs <- function(x) {
      # Utility function --- creates inputs for the EVPPI
      # First checks whether the model is run with JAGS or BUGS
-     require("R2jags")	# needs to load this library (which automatically also loads R2WinBUGS)
+     stopifnot(requireNamespace("R2jags"))	# needs to load this library (which automatically also loads R2WinBUGS)
      cmd <- ifelse(class(x)=="rjags",mdl <- x$BUGSoutput,mdl <- x)
      # Defines the inputs matrix	
      inputs <- mdl$sims.matrix
@@ -2721,47 +2862,439 @@ CreateInputs <- function(x) {
 
 ######Structural PSA#############################################################################
 struct.psa <- function(models,effect,cost,ref=1,interventions=NULL,Kmax=50000,plot=F) {
-     # Computes the weights to be associated with a set of competing models in order to
-     #   perform structural PSA
-     # model is a list containing the output from either R2jags or R2OpenBUGS/R2WinBUGS
-     #   for all the models that need to be combined in the model average
-     # effect is a list containing the measure of effectiveness computed from the 
-     #   various models (one matrix with n.sim x n.ints simulations for each model)
-     # cost is a list containing the measure of costs computed from the 
-     #   various models (one matrix with n.sim x n.ints simulations for each model)
-     
-     require("R2jags")		# needs to load this library 
-     # (which automatically also loads R2WinBUGS)
-     n.models <- length(models)	# number of models to be combined
-     if(n.models==1) {
-          stop("NB: Needs at least two models to run structural PSA")
-     }
-     d <- w <- numeric()		# initialises the relevant vectors
-     mdl <- list()			# and list
-     for (i in 1:n.models) {
-          # 1. checks whether each model has been run using JAGS or BUGS
-          cmd <- ifelse(class(models[[i]])=="rjags",
-                        mdl[[i]] <- models[[i]]$BUGSoutput,  # if model is run using R2jags/rjags 
-                        mdl[[i]] <- models[[i]])	     # if model is run using R2WinBUGS/R2OpenBUGS
-          # 2. saves the DIC in the vector d
-          d[i] <- mdl[[i]]$DIC
-     }
-     dmin <- min(d)					# computes the minimum value to re-scale the DICs
-     w <- exp(-.5*(d-dmin))/sum(exp(-.5*(d-dmin))) 	# Computes the model weights (cfr BMHE)
-     
-     # Now weights the simulations for the variables of effectiveness and costs in each model
-     # using the respective weights, to produce the economic analysis for the average model
-     e <- c <- matrix(NA,dim(effect[[1]])[1],dim(effect[[1]])[2])
-     e <- w[1]*effect[[1]]
-     c <- w[1]*cost[[1]]
-     for (i in 2:n.models) {
-          e <- e + w[i]*effect[[i]]
-          c <- c + w[i]*cost[[i]]
-     }
-     
-     # Now performs the economic analysis on the averaged model
-     he <- bcea(e,c,ref,interventions,Kmax,plot)
-     
-     # And finally saves the results
-     list(he=he,w=w,DIC=d)
+  # Computes the weights to be associated with a set of competing models in order to
+  #   perform structural PSA
+  # model is a list containing the output from either R2jags or R2OpenBUGS/R2WinBUGS
+  #   for all the models that need to be combined in the model average
+  # effect is a list containing the measure of effectiveness computed from the 
+  #   various models (one matrix with n.sim x n.ints simulations for each model)
+  # cost is a list containing the measure of costs computed from the 
+  #   various models (one matrix with n.sim x n.ints simulations for each model)
+  
+  n.models <- length(models)  # number of models to be combined
+  if(n.models==1) {
+    stop("NB: Needs at least two models to run structural PSA")
+  }
+  d <- w <- numeric()		# initialises the relevant vectors
+  mdl <- list()		     	# and list
+  for (i in 1:n.models) {
+    # 1. checks whether each model has been run using JAGS or BUGS
+    if(class(models[[i]])=="rjags") {
+      mdl[[i]] <- models[[i]]$BUGSoutput	# if model is run using R2jags/rjags
+      stopifnot(requireNamespace("R2jags"))
+    }
+    if(class(models[[i]])=="bugs") {		# if model is run using R2WinBUGS/R2OpenBUGS
+      mdl[[i]] <- models[[i]]
+      stopifnot(requireNamespace("R2OpenBUGS"))
+    }
+    mdl[[i]] <- models[[i]]
+    # 2. saves the DIC in the vector d
+    d[i] <- mdl[[i]]$DIC
+  }
+  dmin <- min(d)					# computes the minimum value to re-scale the DICs
+  w <- exp(-.5*(d-dmin))/sum(exp(-.5*(d-dmin))) 	# Computes the model weights (cfr BMHE)
+  
+  # Now weights the simulations for the variables of effectiveness and costs in each model
+  # using the respective weights, to produce the economic analysis for the average model
+  e <- c <- matrix(NA,dim(effect[[1]])[1],dim(effect[[1]])[2])
+  e <- w[1]*effect[[1]]
+  c <- w[1]*cost[[1]]
+  for (i in 2:n.models) {
+    e <- e + w[i]*effect[[i]]
+    c <- c + w[i]*cost[[i]]
+  }
+  
+  # Now performs the economic analysis on the averaged model
+  he <- bcea(e=e,c=c,ref=ref,interventions=interventions,Kmax=Kmax,plot=plot)
+  
+  # And finally saves the results
+  list(he=he,w=w,DIC=d)
+}
+
+
+###cost-effectiveness efficiency frontier#############################################
+# tan(theta)=e/c
+# theta=atan(e/c)
+# if theta_1<theta_2, take 1
+
+ceef.plot <- function(he, comparators=NULL, pos=c(1,1), start.from.origins=TRUE, threshold=NULL, flip=FALSE, dominance=TRUE, relative=FALSE, print.summary=TRUE, graph=c("base", "ggplot2"), ...) {
+  ### plots the cost-effectiveness efficiency frontier, together with the scatter plot of the simulations and optionally the dominance areas
+  if(is.null(he$c) | is.null(he$e)) stop("Please use the bcea() function from BCEA version >=2.1-0 or attach the vectors e and c to the bcea object. Please see ?ceef.plot for additional details.")
+  
+  ### if threshold is NULL, then bound to pi/2, which is atan(Inf); else iff positive, bound to the increase angle given the slope
+  if(is.null(threshold))
+    threshold  <- base::pi/2
+  else{
+    if(threshold<=0){
+      warning("The value of the cost-effectiveness threshold should be positive. The argument will be ignored.")
+      threshold  <- base::pi/2
+    }
+    else
+      threshold <- atan(threshold)
+  }
+  
+  ### selects the comparators. No need for recursion
+  if(!is.null(comparators)){
+    stopifnot(all(comparators %in% 1:he$n.comparators))
+    # adjusts bcea object for the correct number of dimensions and comparators
+    he$comp <- he$comp[comparators]
+    he$n.comparators=length(comparators)
+    he$n.comparisons=length(comparators)-1
+    he$interventions=he$interventions[comparators]
+    he$ref=rank(c(he$ref,he$comp))[1]
+    he$comp=rank(c(he$ref,he$comp))[-1]
+    he$mod <- TRUE #
+    ### bceanew
+    he$e <- he$e[,comparators]
+    he$c <- he$c[,comparators]
+  }
+  
+  ### If the incremental analysis (relative to the reference) is required, needs to modify the BCEA object
+  if(relative) {
+      temp <- he
+      temp$e <- temp$c <- matrix(NA,he$n.sim,he$n.comparators)
+      temp$e[,he$ref] <- temp$c[,he$ref] <- rep(0,he$n.sim)
+      temp$e[,-he$ref] <- -he$delta.e
+      temp$c[,-he$ref] <- -he$delta.c
+      he <- temp
+  }
+  
+  stopifnot(he$n.comparators>=2)
+  base.graphics <- ifelse(isTRUE(pmatch(graph,c("base","ggplot2"))==2),FALSE,TRUE)
+  
+  ### no visible binding note
+  c.avg <- e.avg <- x <- y <- e <- e.orig <- c.orig <- NA_real_
+  
+  ### if the effectiveness is negative or !start.from.origins, rescale
+  ec.min <- with(he,c(min(apply(e,2,mean)),
+                      apply(c,2,mean)[which.min(apply(e,2,mean))],
+                      which.min(apply(e,2,mean))))
+  e.neg <- ec.min[1]<0
+  c.neg <- any(apply(he$c,2,mean)<0)
+  
+  if(e.neg & !c.neg & start.from.origins){
+    message("Benefits are negative, the frontier will not start from the origins")
+    start.from.origins <- FALSE
+  }
+  if(!e.neg & c.neg & start.from.origins){
+    message("Costs are negative, the frontier will not start from the origins")
+    start.from.origins <- FALSE
+  }
+  if(e.neg & c.neg & start.from.origins){
+    message("Costs and benefits are negative, the frontier will not start from the origins")
+    start.from.origins <- FALSE
+  }
+  e.neg <- ifelse(start.from.origins,e.neg,TRUE)
+  
+  ### frontier calculation
+  data.avg <- data.frame(
+    "e.avg"=apply(he$e,2,mean)-ifelse(!e.neg,0,ec.min[1]),
+    "c.avg"=apply(he$c,2,mean)-ifelse(!e.neg,0,ec.min[2]))
+  data.avg <- cbind(data.avg,data.avg,as.factor(c(1:dim(data.avg)[1])))
+  names(data.avg)[3:5] <- c("e.orig","c.orig","comp")
+  orig.avg <- data.avg[,3:5]
+  ### check for interventions with zero costs and effectiveness
+  comp <- ifelse(any(apply(data.avg[,1:2],1,function(x) isTRUE(sum(x) == 0 & prod(x) == 0))),
+                 which(apply(data.avg[,1:2],1,sum)==0 & apply(data.avg[,1:2],1,prod)==0),0)
+  ### contains the points connecting the frontier. Always starts from the origins
+  ceef.points <- data.frame(
+    "x"=0,
+    "y"=0,
+    "comp"=comp)
+  repeat{
+    if(prod(dim(data.avg))==0) break
+    theta <- with(data.avg,atan(c.avg/e.avg))
+    theta.min <- min(theta,na.rm=TRUE)
+    if(theta.min>threshold) break
+    index <- which(theta==theta.min)
+    if(length(index)>1)
+      index=index[which.min(data.avg$e.avg[index])]
+    ceef.points <- with(data.avg,rbind(ceef.points,c(e.orig[index],c.orig[index],comp[index])))
+    data.avg[,1:2] <- data.avg[,3:4]-matrix(rep(as.numeric(data.avg[index,3:4]),dim(data.avg)[1]),ncol=2,byrow=TRUE)
+    data.avg <- subset(subset(data.avg,c.avg*e.avg>0),c.avg+e.avg>0)
+  }
+  ceef.points$comp <- factor(ceef.points$comp)
+  
+  ceef.points$slope <- NA
+  ### calculate slopes
+  for(i in 2:dim(ceef.points)[1])
+    ceef.points$slope[i] <- with(ceef.points,(y[i]-y[i-1])/(x[i]-x[i-1]))
+  
+  ### workaround for start.from.origins == FALSE: remove first row if slope is negative
+  while(dim(ceef.points)[1]>1 & ceef.points$slope[2]<0){
+    ceef.points <- ceef.points[-1,]
+    ceef.points$slope[1] <- NA
+  }
+  
+  ### set data.frame for points
+  scatter.data <- data.frame(
+    "e"=c(he$e),#-ifelse(!e.neg,0,ec.min[1]),
+    "c"=c(he$c),#-ifelse(!e.neg,0,ec.min[2]),
+    "comp"=as.factor(sort(rep(1:he$n.comparators,he$n.sim))))
+  
+  ### re-adjustment of data sets
+  ceef.points[,1] <- ceef.points[,1]+ifelse(!e.neg,0,ec.min[1])
+  ceef.points[,2] <- ceef.points[,2]+ifelse(!e.neg,0,ec.min[2])
+  orig.avg[,1] <- orig.avg[,1]+ifelse(!e.neg,0,ec.min[1])
+  orig.avg[,2] <- orig.avg[,2]+ifelse(!e.neg,0,ec.min[2])
+  
+  ### Summary table function
+  ceef.summary <- function(he,ceef.points,orig.avg,include.ICER=FALSE,...){
+    ## Tables adaptation and formatting
+    no.ceef <- which(!1:he$n.comparators %in% ceef.points$comp)
+    ## Interventions included
+    if(ceef.points$comp[1]==0)
+      ceef.points <- ceef.points[-1,]
+    rownames(ceef.points) <- he$interventions[as.numeric(levels(ceef.points$comp)[ceef.points$comp])]
+    
+    if(!include.ICER){
+      ceef.points[,5] <- atan(ceef.points[,4]^(1*ifelse(!flip,1,-1)))
+      ceef.points <- ceef.points[,-3]
+      colnames(ceef.points) <- c("Effectiveness","Costs","Increase slope","Increase angle")
+    }
+    else{
+      ICERs <- numeric(dim(ceef.points)[1])
+      index <- as.numeric(levels(ceef.points$comp)[ceef.points$comp])
+      for(i in 1:length(ICERs)){
+        if(ceef.points$comp[i]==he$ref)
+          ICERs[i] <- NA_real_
+        else
+          ICERs[i] <- he$ICER[index[i]+ifelse(index[i]<he$ref,0,-1)]
+      }
+      ceef.points[,3] <- ICERs
+      ceef.points[,5] <- atan(ceef.points[,4]^(1*ifelse(!flip,1,-1)))
+      colnames(ceef.points) <- c("Effectiveness","Costs",paste0("ICER ",he$interventions[he$ref]," vs."),"Increase slope","Increase angle")
+    }
+    if(flip) colnames(ceef.points)[1:2] <- colnames(ceef.points[2:1])
+    
+    ## Interventions not included
+    if(length(no.ceef)>0){
+      noceef.points <- data.frame(matrix(NA_real_,ncol=4,nrow=length(no.ceef)))
+      noceef.points[,1:2] <- orig.avg[no.ceef,-3]
+      
+      if(!include.ICER){
+        noceef.points <- noceef.points[,-3]
+        colnames(noceef.points) <- c("Effectiveness","Costs","Dominance type")
+      }
+      else{
+        ICERs <- numeric(dim(noceef.points)[1])
+        for(i in 1:length(ICERs)){
+          if(no.ceef[i]==he$ref)
+            ICERs[i] <- NA_real_
+          else
+            ICERs[i] <- he$ICER[no.ceef[i]+ifelse(no.ceef[i]<he$ref,0,-1)]
+        }
+        noceef.points[,3] <- ICERs
+        colnames(noceef.points) <- c("Effectiveness","Costs",paste0("ICER ",he$interventions[he$ref]," vs."),"Dominance type")
+      }
+      
+      how.dominated <- rep("Extended dominance",length(no.ceef))
+      for(i in 1:length(no.ceef))
+        for(j in 1:dim(ceef.points)[1]){
+          ### if the product of the deltas is negative it is dominated: cannot be dominant since not on the frontier 
+          if((noceef.points[i,1]-ceef.points[j,1])*(noceef.points[i,2]-ceef.points[j,2])<0){
+            how.dominated[i] <- "Absolute dominance"
+            ### alternative:
+            # how.dominated[i] <- paste0("Dominated by ",rownames(ceef.points)[j])
+            break
+          }
+        }
+      noceef.points[,ifelse(!include.ICER,3,4)] <- how.dominated
+      rownames(noceef.points) <- he$interventions[no.ceef]
+      if(flip) colnames(noceef.points)[1:2] <- colnames(noceef.points)[2:1]
+    }
+    
+    ### Print the summary table
+    cat("\nCost-effectiveness efficiency frontier summary \n\n")
+    cat("Interventions on the efficiency frontier:\n")
+    print(ceef.points,quote=F,digits=5,justify="center")
+    cat("\n")
+    if(length(no.ceef)>0){
+      cat("Interventions not on the efficiency frontier:\n")
+      print(noceef.points,quote=F,digits=5,justify="center")
+    }
+  }
+  
+  ### colours
+  colour <- colours()[floor(seq(262,340,length.out=he$n.comparators))]  # gray scale
+  
+  ### plots
+  ##### ***** base graphics ***** #####
+  if(base.graphics){
+    ### legend positioning
+    if(is.numeric(pos)&length(pos)==2){
+      temp <- ""
+      if(pos[2]==0)
+        temp <- paste0(temp,"bottom")
+      else
+        temp <- paste0(temp,"top")
+      if(pos[1]==0)
+        temp <- paste0(temp,"left")
+      else
+        temp <- paste0(temp,"right")
+      pos <- temp
+      if(length(grep("^(bottom|top)(left|right)$",temp))==0)
+        pos <- FALSE
+    }
+    if(is.logical(pos)){
+      if(!pos)
+        pos="topright"
+      else
+        pos="topleft"
+    }
+    
+    if(flip){
+      temp <- scatter.data$e
+      scatter.data$e <- scatter.data$c
+      scatter.data$c <- temp
+      
+      temp <- ceef.points$x
+      ceef.points$x <- ceef.points$y
+      ceef.points$y <- temp
+      
+      temp <- orig.avg$e.orig
+      orig.avg$e.orig <- orig.avg$c.orig
+      orig.avg$c.orig <- temp
+      
+      rm(temp)
+    }
+    
+    ### set up plot window
+    xlab=ifelse((!flip & !relative),"Effectiveness",
+                ifelse((!flip & relative),"Differential effectiveness",
+                ifelse((flip & !relative),"Cost","Differential cost")))
+    ylab=ifelse((!flip & !relative),"Cost",
+                ifelse((!flip & relative),"Differential cost",
+                ifelse((flip & !relative),"Effectiveness","Differential effectiveness")))
+    plot(NULL,
+         xlim=c(min(range(scatter.data$e)[1],0),max(range(scatter.data$e)[2],0)),
+         ylim=c(min(range(scatter.data$c)[1],0),max(range(scatter.data$c)[2],0)),
+         main="Cost-effectiveness efficiency frontier",
+         xlab=xlab,ylab=ylab)
+    
+    if(dominance){
+      ### add dominance regions
+      for(i in 1:dim(ceef.points)[1]){
+        rect(col="grey95",border=NA,
+             xleft=ifelse(!flip,-1,1)*2*max(abs(range(scatter.data$e))),xright=ceef.points$x[i],
+             ybottom=ceef.points$y[i],ytop=ifelse(!flip,1,-1)*2*max(abs(range(scatter.data$c))))
+      }
+      if(dim(ceef.points)[1]>1)
+        for(i in 2:dim(ceef.points)[1]){
+          rect(col="grey85",border=NA,
+               xleft=ifelse(!flip,-1,1)*2*max(abs(range(scatter.data$e))),xright=ceef.points$x[ifelse(!flip,i-1,i)],
+               ybottom=ceef.points$y[ifelse(!flip,i,i-1)],ytop=ifelse(!flip,1,-1)*2*max(abs(range(scatter.data$c))))
+        }
+    }
+    
+    ### plot the axes
+    abline(h=0,col="grey")
+    abline(v=0,col="grey")
+    
+    ### plot the scatter
+    for(i in 1:he$n.comparators)
+      with(scatter.data,points(subset(scatter.data,comp==i)[,-3],type="p",pch=20,cex=.35,col=colour[i]))
+    
+    ### plot the frontier
+    points(ceef.points[,1:2],type="l",lwd=2)
+    ### add circles
+    points(orig.avg[,-3],pch=21,cex=2,bg="white",col="black")
+    ### add text; grey if not on the frontier
+    for(i in 1:he$n.comparators){
+      text(orig.avg[i,-3],labels=orig.avg[i,3],col=ifelse(i %in% ceef.points$comp,"black","grey60"),cex=.75)
+    }
+    ### legend text
+    text <- paste(1:he$n.comparators,":",he$interventions)
+    legend(pos,text,col=colour,cex=.7,bty="n",lty=1)
+    
+    ### needed for dominance areas overwriting the outer box
+    box()
+    
+    if(print.summary)
+      ceef.summary(he,ceef.points,orig.avg,...)
+  }
+  ##### ***** ggplot2 ***** #####
+  else{
+    if(!isTRUE(requireNamespace("ggplot2",quietly=TRUE)&requireNamespace("grid",quietly=TRUE))){
+      message("Falling back to base graphics\n")
+      ceef.plot(he,flip=flip,comparators=comparators,pos=pos,start.from.origins=start.from.origins,graph="base")
+      return(invisible(NULL))
+    }
+    
+    opt.theme <- ggplot2::theme()
+    exArgs <- list(...)
+    if(length(exArgs)>=1){
+      for(obj in exArgs)
+        if(ggplot2::is.theme(obj))
+          opt.theme <- opt.theme + obj
+    }
+    
+    ceplane <- ggplot2::ggplot(ceef.points,ggplot2::aes(x=x,y=y))
+    
+    if(dominance){
+      ### add dominance regions
+      ceplane <- ceplane +
+        ggplot2::geom_rect(data=ceef.points,ggplot2::aes(xmax=x,ymin=y),
+                           ymax=2*max(abs(range(scatter.data$c))),xmin=-2*max(abs(range(scatter.data$e))),
+                           alpha=.35,fill="grey75")
+    }
+    
+    ceplane <- ceplane +
+      ### draw axes
+      ggplot2::geom_hline(vintercept=0,colour="grey")+ggplot2::geom_vline(xintercept=0,colour="grey")+
+      ### add scatter points
+      ggplot2::geom_point(data=scatter.data,ggplot2::aes(x=e,y=c,colour=comp),size=1)
+    ### add frontier
+    if(dim(ceef.points)[1]>1)
+      ceplane <- ceplane + ggplot2::geom_path()
+    ### add circles
+    xlab=ifelse(!relative,"Effectiveness","Effectiveness differential")
+    ylab=ifelse(!relative,"Cost","Cost differential")
+    ceplane <- ceplane +
+      ggplot2::geom_point(data=orig.avg,ggplot2::aes(x=e.orig,y=c.orig),size=5.5,colour="black")+
+      ggplot2::geom_point(data=orig.avg,ggplot2::aes(x=e.orig,y=c.orig),size=4.5,colour="white")+
+      ### set graphical parameters
+      ggplot2::scale_colour_manual("",labels=paste0(1:he$n.comparators,": ",he$interventions),values=colour,na.value="black")+
+      ggplot2::labs(title="Cost-effectiveness efficiency frontier",x=xlab,y=ylab)+
+      ggplot2::theme_bw()
+    ### add text into circles
+    for(i in 1:he$n.comparators){
+      ceplane <- ceplane + 
+        ggplot2::geom_text(data=orig.avg[i,],ggplot2::aes(x=e.orig,y=c.orig,label=comp),size=3.5,
+                  colour=ifelse(i %in% ceef.points$comp, "black", "grey60"))
+    }
+    
+    jus <- NULL
+    if(isTRUE(pos)) {
+      pos="bottom"
+      ceplane <- ceplane + ggplot2::theme(legend.direction="vertical")
+    }
+    else{
+      if(is.character(pos)) {
+        choices <- c("left", "right", "bottom", "top")
+        pos <- choices[pmatch(pos,choices)]
+        jus="center"
+        if(is.na(pos))
+          pos=FALSE
+      }
+      if(length(pos)>1)
+        jus <- pos
+      if(length(pos)==1 & !is.character(pos)) {
+        pos <- c(1,1)
+        jus <- pos
+      }
+    }
+    
+    ceplane <- ceplane + 
+      ggplot2::theme(legend.position=pos,legend.justification=jus,legend.title=ggplot2::element_blank(),
+                     legend.background=ggplot2::element_blank(),text=ggplot2::element_text(size=11),
+                     legend.key.size=grid::unit(.66,"lines"),legend.margin=grid::unit(-1.25,"line"),
+                     panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank(),legend.text.align=0,
+                     plot.title = ggplot2::element_text(face="bold",lineheight=1.05,size=14.3)) +
+      opt.theme
+    
+    if(flip) ceplane  <- ceplane + ggplot2::coord_flip()
+    if(print.summary) ceef.summary(he,ceef.points,orig.avg,...)
+    return(ceplane)
+  }
 }

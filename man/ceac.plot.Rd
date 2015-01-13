@@ -1,25 +1,25 @@
 \name{ceac.plot}
 \alias{ceac.plot}
-%- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Cost Effectiveness Acceptability Curve (CEAC) plot
+Cost-Effectiveness Acceptability Curve (CEAC) plot
 }
 \description{
-Produces a plot of the CEAC against the willingness to pay threshold
+Produces a plot of the Cost-Effectiveness Acceptability Curve (CEAC) against the willingness to pay threshold
 }
 \usage{
-ceac.plot(he, comparison = NULL, pos = c(1,0), graph = c("base","ggplot2"))
+ceac.plot(he, comparison = NULL, pos = c(1,0), 
+          graph = c("base","ggplot2"))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{he}{
-A "bcea" object containing the results of the Bayesian modelling and the economic evaluation
+A \code{bcea} object containing the results of the Bayesian modelling and the economic evaluation.
 }
   \item{comparison}{
-Ignored if \code{graph="base"}. Else if \code{graph="ggplot2"} it selects the comparators, in case of more than two interventions being analysed. Default as NULL plots all the comparisons together. Any subset of the comparisons can be selected (e.g., \code{comparison=c(1,3)}).
+Selects the comparator, in case of more than two interventions being analysed. Default as NULL plots all the comparisons together. Any subset of the possible comparisons can be selected (e.g., \code{comparison=c(1,3)} or \code{comparison=2}).
   }
     \item{pos}{
-Parameter to set the position of the legend (only relevant for multiple interventions, ie more than 2 interventions being compared). Can be given in form of a string \code{(bottom|top)(right|left)} for base graphics and \code{bottom|top|left|right} for ggplot2. It can be a two-elements vector, which specifies the relative position on the x and y axis respectively, or alternatively it can be in form of a logical variable, with \code{FALSE} indicating to use the default position and \code{TRUE} to place it on the bottom of the plot. Default value is \code{c(1,0)}, that is the bottomright corner inside the plot area.
+Parameter to set the position of the legend (only relevant for multiple interventions, ie more than 2 interventions being compared). Can be given in form of a string \code{(bottom|top)(right|left)} for base graphics and \code{bottom}, \code{top}, \code{left} or \code{right} for ggplot2. It can be a two-elements vector, which specifies the relative position on the x and y axis respectively, or alternatively it can be in form of a logical variable, with \code{FALSE} indicating to use the default position and \code{TRUE} to place it on the bottom of the plot. Default value is \code{c(1,0)}, that is the bottomright corner inside the plot area.
   }
   \item{graph}{
 A string used to select the graphical engine to use for plotting. Should (partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is \code{"base"}.

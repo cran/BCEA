@@ -1,6 +1,5 @@
 \name{mce.plot}
 \alias{mce.plot}
-%- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Plots the probability that each intervention is the most cost-effective
 }
@@ -10,7 +9,6 @@ Plots the probability that each of the n_int interventions being analysed is the
 \usage{
 mce.plot(mce,pos=c(1,0.5),graph=c("base","ggplot2"))
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{mce}{
 The output of the call to the function \code{\link{multi.ce}}.
@@ -24,7 +22,7 @@ A string used to select the graphical engine to use for plotting. Should (partia
 }
 \value{
 \item{mceplot}{
-A ggplot object containing the requested plot. Returned only if \code{graph="ggplot2"}.
+A ggplot object containing the plot. Returned only if \code{graph="ggplot2"}.
 }
 }
 \author{
@@ -66,8 +64,10 @@ mce <- multi.ce(m)          # uses the results of the economic analysis
 mce.plot(mce,               # plots the probability of being the most cost-effective
       graph="base")         #  using base graphics
 #
+if(require(ggplot2)){
 mce.plot(mce,               # the same plot
       graph="ggplot2")      #  using ggplot2 instead
+}
 }
 
 % Add one or more standard keywords, see file 'KEYWORDS' in the

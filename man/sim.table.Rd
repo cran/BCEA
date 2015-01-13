@@ -13,15 +13,15 @@ sim.table(he, wtp = 25000)
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{he}{
-A "bcea" object containing the results of the Bayesian modelling and the economic evaluation
+A \code{bcea} object containing the results of the Bayesian modelling and the economic evaluation.
 }
   \item{wtp}{
-The value of the willingness to pay threshold to be used in the summary table
+The value of the willingness to pay threshold to be used in the summary table.
 }
 }
 
 \value{
-Produces the following elements
+Produces the following elements:
 \item{Table}{A table with the simulations from the economic model}
 \item{names.cols}{A vector of labels to be associated with each column of the table}
 \item{wtp}{The selected value of the willingness to pay}
