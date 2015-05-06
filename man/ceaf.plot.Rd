@@ -5,7 +5,8 @@
 Cost-Effectiveness Acceptability Frontier (CEAF) plot 
 }
 \description{
-Produces a plot the Cost-Effectiveness Acceptability Frontier (CEAF) against the willingness to pay threshold
+Produces a plot the Cost-Effectiveness Acceptability Frontier (CEAF) against the 
+willingness to pay threshold
 }
 \usage{
 ceaf.plot(mce, graph=c("base","ggplot2"))
@@ -15,7 +16,9 @@ ceaf.plot(mce, graph=c("base","ggplot2"))
   \item{mce}{
 The output of the call to the function \code{\link{multi.ce}}}
   \item{graph}{
-A string used to select the graphical engine to use for plotting. Should (partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is \code{"base"}.
+A string used to select the graphical engine to use for plotting. Should 
+(partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value 
+is \code{"base"}.
   }
 }
 \value{
@@ -24,7 +27,8 @@ A string used to select the graphical engine to use for plotting. Should (partia
 }
 }
 \references{
-Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. Statistical Methods in Medical Research doi:10.1177/0962280211419832.
+Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. 
+Statistical Methods in Medical Research doi:10.1177/0962280211419832.
 
 Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London
 }

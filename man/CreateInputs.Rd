@@ -4,14 +4,17 @@
 CreateInputs
 }
 \description{
-Creates an object containing the matrix with the parameters simulated using the MCMC procedure (using JAGS or BUGS) and a vector of parameters (strings) that can be used to perform the expected value of partial information analysis
+Creates an object containing the matrix with the parameters simulated using the MCMC 
+procedure (using JAGS or BUGS) and a vector of parameters (strings) that can be used 
+to perform the expected value of partial information analysis
 }
 \usage{
 CreateInputs(x)
 }
 \arguments{
   \item{x}{
-A rjags or bugs object, containing the results of a call to either "jags" (under R2jags) or bugs (under "R2WinBUGS" or "R2OpenBUGS").
+A rjags or bugs object, containing the results of a call to either "jags" (under R2jags) 
+or bugs (under "R2WinBUGS" or "R2OpenBUGS").
 }
 }
 \value{

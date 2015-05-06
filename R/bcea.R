@@ -12,7 +12,9 @@
 ## v2.1.0-pre2 GB October, 2014: modifications to ceef.plot, CreateInputs, struct.psa
 ## v2.1.0 AB October, 2014: migrated from if(require()) to if(requireNamespace(,quietly=TRUE)); documentation updated
 ## v2.1.0 AB December, 2014: added threshold argument to ceef.plot function; documentation updated
-## (C) Gianluca Baio + contributions by Andrea Berardi & Chris Jackson
+## v2.1.1 GB+AH April/May 2015: new function for EVPPI using SPDE-INLA; modifications to the EVPPI functions; 
+##        documentation updated; allows xlim & ylim in the ceplane.plot, contour and contour2 functions
+## (C) Gianluca Baio + contributions by Andrea Berardi, Chris Jackson & Anna Heath
 
 ###Functions included################################################################################
 #*> cat(paste0(ls(),"\n"))
@@ -24,10 +26,9 @@
 # ceplane.plot
 # CEriskav
 # CEriskav.default
-# contour.bcea
 # contour2
+# contour.bcea
 # CreateInputs
-# diag.evppi
 # eib.plot
 # evi.plot
 # evppi
@@ -37,7 +38,6 @@
 # mixedAn
 # mixedAn.default
 # multi.ce
-# multi.evppi
 # plot.bcea
 # plot.CEriskav
 # plot.evppi
@@ -46,6 +46,7 @@
 # struct.psa
 # summary.bcea
 # summary.mixedAn
+
 
 ###bcea##############################################################################################
 bcea <- function(e,c,ref=1,interventions=NULL,Kmax=50000,wtp=NULL,plot=FALSE) UseMethod("bcea")
@@ -342,7 +343,8 @@ sim.table <- function(he,wtp=25000) {
 
 ##########################################ceplane.plot########################################################
 ## Plots the CE Plane
-ceplane.plot <- function(he,comparison=NULL,wtp=25000,pos=c(1,1),size=NULL,graph=c("base","ggplot2"),...) {
+ceplane.plot <- function(he,comparison=NULL,wtp=25000,pos=c(1,1),size=NULL,graph=c("base","ggplot2"),
+                         xlim=NULL,ylim=NULL,...) {
   ### hidden options for ggplot2 ###
   # ICER.size =                    # changes ICER point size
   # label.pos = FALSE              # uses alternate position for wtp label (old specification)
@@ -396,6 +398,8 @@ ceplane.plot <- function(he,comparison=NULL,wtp=25000,pos=c(1,1),size=NULL,graph
       xx[1] <- ifelse(min(xx)<m.e,xx[1],2*m.e)
       yy[1] <- ifelse(min(yy)<m.c,yy[1],2*m.c)
       xx[length(xx)] <- ifelse(xx[length(xx)]<M.e,1.5*M.e,xx[length(xx)])
+      if(!is.null(xlim)) {m.e <- xlim[1]; M.e <- xlim[2]}
+      if(!is.null(ylim)) {m.c <- ylim[1]; M.c <- ylim[2]}
       plot(xx,yy,col="white",xlim=c(m.e,M.e),ylim=c(m.c,M.c),
            xlab="Effectiveness differential",ylab="Cost differential",
            main=paste("Cost effectiveness plane \n",
@@ -416,7 +420,9 @@ ceplane.plot <- function(he,comparison=NULL,wtp=25000,pos=c(1,1),size=NULL,graph
     if(he$n.comparisons>1 & is.null(comparison)==TRUE) { 
       cl <- colors()
       color <- cl[floor(seq(262,340,length.out=he$n.comparators))]  # gray scale
-      plot(he$delta.e[,1],he$delta.c[,1],pch=20,cex=.35,xlim=range(he$delta.e),ylim=range(he$delta.c),
+      if(is.null(xlim)) {xlim <- range(he$delta.e)}
+      if(is.null(ylim)) {ylim <- range(he$delta.c)}
+      plot(he$delta.e[,1],he$delta.c[,1],pch=20,cex=.35,xlim=xlim,ylim=ylim,
            xlab="Effectiveness differential",ylab="Cost differential",
            main="Cost-effectiveness plane")
       for (i in 2:he$n.comparisons) {
@@ -442,6 +448,8 @@ ceplane.plot <- function(he,comparison=NULL,wtp=25000,pos=c(1,1),size=NULL,graph
       xx[1] <- ifelse(min(xx)<m.e,xx[1],2*m.e)
       yy[1] <- ifelse(min(yy)<m.c,yy[1],2*m.c)
       xx[length(xx)] <- ifelse(xx[length(xx)]<M.e,1.5*M.e,xx[length(xx)])
+      if(!is.null(xlim)) {m.e <- xlim[1]; M.e <- xlim[2]}
+      if(!is.null(ylim)) {m.c <- ylim[1]; M.c <- ylim[2]}
       plot(xx,yy,col="white",xlim=c(m.e,M.e),ylim=c(m.c,M.c),
            xlab="Effectiveness differential",ylab="Cost differential",
            main=paste("Cost effectiveness plane \n",
@@ -535,11 +543,13 @@ ceplane.plot <- function(he,comparison=NULL,wtp=25000,pos=c(1,1),size=NULL,graph
       # actual plot
       ceplane <- ggplot2::ggplot(kd, ggplot2::aes(delta.e,delta.c)) +
         ggplot2::theme_bw() +
-        ggplot2::scale_x_continuous(limits=range.e,oob=do.nothing) + ggplot2::scale_y_continuous(limits=range.c,oob=do.nothing) +
+        ggplot2::scale_x_continuous(limits=range.e,oob=do.nothing) + 
+        ggplot2::scale_y_continuous(limits=range.c,oob=do.nothing) +
         ggplot2::scale_color_manual("",labels=paste0("ICER = ",format(he$ICER,digits=6,nsmall=2),"  "),values="red") +     
         ggplot2::geom_line(data=plane[1:2,],ggplot2::aes(x=x,y=y),color="black",linetype=1) +
         ggplot2::geom_polygon(data=plane,ggplot2::aes(x=x,y=y),fill="light gray",alpha=.3) +
-        ggplot2::geom_hline(ggplot2::aes(yintercept=0),colour="grey") + ggplot2::geom_vline(ggplot2::aes(xintercept=0),colour="grey") +
+        ggplot2::geom_hline(ggplot2::aes(yintercept=0),colour="grey") + 
+        ggplot2::geom_vline(ggplot2::aes(xintercept=0),colour="grey") +
         ggplot2::geom_point(size=1,colour="grey33") +
         ggplot2::geom_point(ggplot2::aes(mean(delta.e),mean(delta.c),color=as.factor(1)),size=ICER.size)
       
@@ -1375,7 +1385,8 @@ plot.bcea <- function(x,comparison=NULL,wtp=25000,pos=FALSE,graph=c("base","ggpl
 ###contours##################################################################################################
 
 ## Contour plots for the cost-effectiveness plane
-contour.bcea <- function(x,comparison=1,scale=0.5,nlevels=4,levels=NULL,pos=c(1,0),graph=c("base","ggplot2"),...) {
+contour.bcea <- function(x,comparison=1,scale=0.5,nlevels=4,levels=NULL,pos=c(1,0),
+                         xlim=NULL,ylim=NULL,graph=c("base","ggplot2"),...) {
      requireNamespace("MASS")
      options(scipen=10)
      # comparison selects which plot should be made
@@ -1402,16 +1413,21 @@ contour.bcea <- function(x,comparison=1,scale=0.5,nlevels=4,levels=NULL,pos=c(1,
                
                m.c <- range(x$delta.c)[1]; M.c <- range(x$delta.c)[2]
                m.e <- range(x$delta.e)[1]; M.e <- range(x$delta.e)[2]
-               
+                              
                # Changes the range so that the plot always shows the x and y axes
                ch1 <- ifelse(m.e>0,m.e<--m.e,m.e<-m.e)
                ch2 <- ifelse(M.e<0,M.e<--M.e,M.e<-M.e)
                ch3 <- ifelse(m.c>0,m.c<--m.c,m.c<-m.c)
                ch4 <- ifelse(M.c<0,M.c<--M.c,M.c<-M.c)
                
+               # If the user has specified the range of the graph, use those values
+               if(!is.null(xlim)) {m.e <- xlim[1]; M.e <- xlim[2]}
+               if(!is.null(ylim)) {m.c <- ylim[1]; M.c <- ylim[2]}
+                           
                plot(x$delta.e,x$delta.c,pch=20,cex=.3,col="dark grey",xlab="Effectiveness differential",
                     ylab="Cost differential",main=paste("Cost effectiveness plane contour plot \n",
-                                                        x$interventions[x$ref]," vs ",x$interventions[x$comp],sep=""),xlim=c(m.e,M.e),ylim=c(m.c,M.c))
+                                                        x$interventions[x$ref]," vs ",x$interventions[x$comp],sep=""),
+                    xlim=c(m.e,M.e),ylim=c(m.c,M.c))
                abline(h=0,col="dark grey")
                abline(v=0,col="dark grey")
                if(any(is.na(density$z))==FALSE) {
@@ -1452,6 +1468,10 @@ contour.bcea <- function(x,comparison=1,scale=0.5,nlevels=4,levels=NULL,pos=c(1,
                ch2 <- ifelse(M.e<0,M.e<--M.e,M.e<-M.e)
                ch3 <- ifelse(m.c>0,m.c<--m.c,m.c<-m.c)
                ch4 <- ifelse(M.c<0,M.c<--M.c,M.c<-M.c)
+               
+               # If the user has specified the range of the graph, use those values
+               if(!is.null(xlim)) {m.e <- xlim[1]; M.e <- xlim[2]}
+               if(!is.null(ylim)) {m.c <- ylim[1]; M.c <- ylim[2]}
                
                plot(x$delta.e[,comparison],x$delta.c[,comparison],pch=20,cex=.3,col="dark grey",
                     xlab="Effectiveness differential",ylab="Cost differential",
@@ -1654,7 +1674,7 @@ contour.bcea <- function(x,comparison=1,scale=0.5,nlevels=4,levels=NULL,pos=c(1,
      } # !base.graphics
 }
 
-contour2 <- function(he,wtp=25000,xl=NULL,yl=NULL,comparison=NULL,graph=c("base","ggplot2"),...) {
+contour2 <- function(he,wtp=25000,xlim=NULL,ylim=NULL,comparison=NULL,graph=c("base","ggplot2"),...) {
      # Forces R to avoid scientific format for graphs labels
      options(scipen=10)
      
@@ -1666,7 +1686,10 @@ contour2 <- function(he,wtp=25000,xl=NULL,yl=NULL,comparison=NULL,graph=c("base"
           pdf.options(encoding="CP1250")
           
           # Selects the first comparison by default if not selected
-          if(is.null(comparison) | length(comparison) > 1){
+          if(is.null(comparison) & he$n.comparisons==1) {
+            comparison <- 1
+          }
+          if(is.null(comparison) | he$n.comparisons > 1){
             message("The first available comparison will be selected. To plot multiple comparisons together please use the ggplot2 version. Please see ?contour2 for additional details.")
             comparison <- 1
           }
@@ -1679,8 +1702,6 @@ contour2 <- function(he,wtp=25000,xl=NULL,yl=NULL,comparison=NULL,graph=c("base"
                he$ICER <- he$ICER[comparison]
           }
           
-          ### NB MAY NEED TO MODIFY TO ACCOUNT FOR xl AND yl SO THAT THE TEXT FOR ICER IS ALWAYS ON THE 
-          ### TOP RIGHT CORNER OF THE GRAPH!!
           m.e <- range(he$delta.e)[1]
           M.e <- range(he$delta.e)[2]
           m.c <- range(he$delta.c)[1]
@@ -1689,16 +1710,20 @@ contour2 <- function(he,wtp=25000,xl=NULL,yl=NULL,comparison=NULL,graph=c("base"
           
           m.e <- ifelse(m.e<0,m.e,-m.e)
           m.c <- ifelse(m.c<0,m.c,-m.c)
+
           x.pt <- .95*m.e
           y.pt <- ifelse(x.pt*wtp<m.c,m.c,x.pt*wtp)
           xx <- seq(100*m.c/wtp,100*M.c/wtp,step)
-          yy <- xx*wtp
+          yy <- xx*wtp          
           xx[1] <- ifelse(min(xx)<m.e,xx[1],2*m.e)
           yy[1] <- ifelse(min(yy)<m.c,yy[1],2*m.c)
           xx[length(xx)] <- ifelse(xx[length(xx)]<M.e,1.5*M.e,xx[length(xx)])
-          ifelse(is.null(xl),xl2<-c(m.e,M.e),xl2<-xl)
-          ifelse(is.null(yl),yl2<-c(m.c,M.c),yl2<-yl)
-          plot(xx,yy,col="white",xlim=xl2,ylim=yl2, ####xlim=c(m.e,M.e),ylim=c(m.c,M.c),
+          
+          # If the user has specified x- and/or y-limits then use those
+          if(!is.null(xlim)) {m.e <- xlim[1]; M.e <- xlim[2]}
+          if(!is.null(ylim)) {m.c <- ylim[1]; M.c <- ylim[2]}
+          
+          plot(xx,yy,col="white",xlim=c(m.e,M.e),ylim=c(m.c,M.c), 
                xlab="Effectiveness differential",ylab="Cost differential",
                main=paste("Cost effectiveness plane \n",
                           he$interventions[he$ref]," vs ",he$interventions[he$comp],sep=""),axes=F)
@@ -1740,7 +1765,7 @@ contour2 <- function(he,wtp=25000,xl=NULL,yl=NULL,comparison=NULL,graph=c("base"
           
           if(!isTRUE(requireNamespace("ggplot2",quietly=TRUE)&requireNamespace("grid",quietly=TRUE))){
                message("falling back to base graphics\n")
-               contour2(he,comparison=comparison,xl=xl,yl=yl,wtp=wtp,graph="base"); return(invisible(NULL))
+               contour2(he,comparison=comparison,xlim=xlim,ylim=ylim,wtp=wtp,graph="base"); return(invisible(NULL))
           }
           scale=0.5
           nlevels=5
@@ -1784,10 +1809,10 @@ contour2 <- function(he,wtp=25000,xl=NULL,yl=NULL,comparison=NULL,graph=c("base"
                he$comp=rank(c(he$ref,he$comp))[-1]
                he$mod <- TRUE #
                
-               return(contour2(he,wtp=wtp,xl=xl,yl=yl,comparison=NULL,graph="ggplot2",...))
+               return(contour2(he,wtp=wtp,xlim=xlim,ylim=ylim,comparison=NULL,graph="ggplot2",...))
           }
 
-          contour <- contour + ggplot2::coord_cartesian(xlim=xl,ylim=yl)
+          contour <- contour + ggplot2::coord_cartesian(xlim=xlim,ylim=ylim)
           return(contour)
      } # end if !base.graphics
      
@@ -2347,421 +2372,223 @@ ceaf.plot <- function(mce,graph=c("base","ggplot2")){
 
 
 ######evppi###################################################################################################
-evppi <- function(parameters,inputs,he,n.blocks=NULL,n.seps=NULL,method=c("so","sal")) UseMethod("evppi") 
+evppi <- function(parameter,input,he,N=NA,plot=F,residuals=F,h.value=0.00005) UseMethod("evppi") 
+evppi.default <- function(parameter,input,he,N=NA,plot=F,residuals=F,h.value=0.00005){
+  #Addtional options to determine mesh parameters???
+  #inputs must be as a data frame to extract column names for GAM regression  
+  if(class(parameter[1])=="character"){
+    parameters<-array()
+    for(i in 1:length(parameter)){
+      parameters[i]<-which(colnames(input)==parameter[i])
+    }
+  }else{parameters=parameter}
+  inputs<-data.frame(input)
+  #GAM regression for single parameter evppi, so single parameter evppi can be done by this function.
+  if(length(parameter)==1){
+    #Necessary packages - possible require(MASS) if we wish to calculate SE/Upward bias
+    if(is.element("mgcv",installed.packages()[,1])==F){install.packages("mgcv")}
+    if(isTRUE(requireNamespace("mgcv",quietly=TRUE))) {
+      # Computational time
+      tic <- proc.time()
+      # Runs GAM regression for the effects
+      cat("\n")
+      cat("Calculating fitted values for the GAM regression \n")
+      d <- he$n.comparisons
+      N <- min(he$n.sim,N,na.rm=T)
+      inp<-names(inputs)[parameters]
+      form <- paste("s(", inp,")", sep="", collapse="")
+      if(d==1) {
+        f.e <- update(formula(he$delta.e~.),formula(paste(".~",form)))
+        f.c <- update(formula(he$delta.c~.),formula(paste(".~",form)))
+        model.e <- mgcv::gam(f.e,data=data.frame(inputs)) 
+        model.c <- mgcv::gam(f.c,data=data.frame(inputs)) 
+        e.hat <- model.e$fitted
+        c.hat <- model.c$fitted
+      }else{
+        e.hat <- c.hat <- matrix(NA,N,d) 
+        for (i in 1:d) {
+          f.e <- update(formula(he$delta.e[,i]~.),formula(paste(".~",form)))
+          f.c <- update(formula(he$delta.c[,i]~.),formula(paste(".~",form)))
+          model.e <- mgcv::gam(f.e,data=data.frame(inputs)) 
+          model.c <- mgcv::gam(f.c,data=data.frame(inputs)) 
+          e.hat[,i] <- model.e$fitted
+          c.hat[,i] <- model.c$fitted
+        }
+      }
+      if(residuals==TRUE){
+        residuals=FALSE
+        warning("You calculated single parameter EVPPI - the fitted values cannot be calculated")
+      }
+      cat("Calculating EVPPI \n")
+      EVPPI<-array()
+      for(i in 1:length(he$k)){
+        NB.k.mid <- -(he$k[i]*e.hat-c.hat)
+        NB.k <- cbind(NB.k.mid,rep(0,N))
+        EVPPI[i] <- (mean(apply(NB.k,1,max,na.rm=T))-max(apply(NB.k,2,mean,na.rm=T)))
+      }
+      toc <- proc.time()-tic 
+    } 
+  }else{    
+    #installing required packages for the SPDE-INLA method - this is slow if INLA is not installed but only needs to be done once
+    if(is.element("INLA",installed.packages()[,1])==F){install.packages("INLA", repos="http://www.math.ntnu.no/inla/R/stable")}
+    if(is.element("sp",installed.packages()[,1])==F){install.packages("sp")}
+    if(is.element("Matrix",installed.packages()[,1])==F){install.packages("Matrix")}
+    if(is.element("splines",installed.packages()[,1])==F){install.packages("splines")}
+    if(is.element("splancs",installed.packages()[,1])==F){install.packages("splancs")}
+    
+    # Attaches INLA NAMESPACE, if it's not already
+    if(!is.element("INLA",(.packages()))) {attachNamespace("INLA")}
+    # Computational time
+    tic <- proc.time()
+    #Restricts the number of PSA samples used to calculate the EVPPI - speeds up computation time
+    N<-min(he$n.sim,N,na.rm=T)
+    
+    #Set up the projection from P dimesional space to 2 dimensions
+    cat("\n")
+    cat("Finding projections \n")
+    comp1<-prcomp(inputs[1:N,parameters])
+    Datum<-inputs[1:N,parameters]
+    Data<-cbind(as.matrix(Datum)%*%as.matrix(comp1$rotation[,2]),as.matrix(Datum)%*%as.matrix(comp1$rotation[,1]))
+    
+    #Rescale the projections to fit mesh
+    Data.Scale<-cbind((Data[,1]-mean(Data[,1]))/sd(Data[,1]),
+                      (Data[,2]-mean(Data[,2]))/sd(Data[,2]))
+    cat("Determining Mesh \n")
+    
+    #Find mesh that fits the scaled projections
+    # NB: Includes this in a suppressMessage command to prevent R from printing stuff about loading several packages
+    inner<-suppressMessages({INLA::inla.nonconvex.hull(Data.Scale,convex=-0.1)})
+    outer<-INLA::inla.nonconvex.hull(Data.Scale,convex=-0.5)
+    mesh.tmp <- INLA::inla.mesh.2d(
+      boundary=list(inner),
+      max.edge=c(0.5),
+      cutoff=0.1)    
+    mesh <- INLA::inla.mesh.2d(
+      loc=mesh.tmp$loc,
+      boundary=list(INLA::inla.mesh.boundary(mesh.tmp),outer),
+      max.edge=c(0.5,0.5*2),cutoff=0.2)
+    
+    #Plotting shows the mesh
+    if(plot==TRUE){
+      plot(mesh)
+      points(Data.Scale,col="blue",pch=19)
+    }
+    
+    #Rescaled parameter values
+    inputs.Scale<-scale(inputs[1:N,],apply(inputs[1:N,],2,mean),apply(inputs[1:N,],2,sd))
 
-evppi.default <- function(parameters,inputs,he,n.blocks=NULL,n.seps=NULL,method=c("so","sal")) {
-     ## Computes the Expected Value of Partial Information with respect to a given parameter
-     method <- match.arg(method)
-     
-     ## Input errors
-     if (is.null(n.blocks)==TRUE & is.null(n.seps)==TRUE) {
-          name <- ifelse(method=="so","Strong & Oakley (univariate)",
-                         "Sadatsafavi et al")
-          needed.arg <- ifelse(method=="so","n.blocks","n.seps")
-          text <- paste0("You have selected the method of ",name,".\n  Please specify: ",
-                         needed.arg)
-          stop(text)
-     }
-     
-     ## Sadatsafavi et al
-     if (method=="sal" | (is.null(n.blocks)==TRUE & is.null(n.seps)==FALSE)) {
-          method <- "sal"
-          if (is.null(n.seps)) {
-               n.seps <- 1
-          }
-          if (length(parameters)==1) {
-               # Needs to modify a vector "param" with the values from the requested parameter
-               d <- he$n.comparators
-               n <- he$n.sim
-               w <- which(colnames(inputs)==parameters)
-               param <- inputs[,w]     # vector of simulations for the relevant parameter
-               o <- order(param)
-               param <- param[o]     # re-order the parameter vector
-               nSegs<-matrix(1,d,d)
-               nSegs[1,2] <- n.seps; 	nSegs[2,1] <- n.seps
-               res <- segPoints <- numeric()
-               for (k in 1:length(he$k)) {
-                    nbs <- he$U[,k,]	# this is a n.sims x n.interventions matrix 
-                    # with the NB for each value of k
-                    nbs <- nbs[o,]	# re-arrange according to the parameter order
-                    for(i in 1:(d-1)) {
-                         for(j in (i+1):d) {
-                              cm <- cumsum(nbs[,i]-nbs[,j])/n
-                              if(nSegs[i,j]==1) {
-                                   l <- which.min(cm)	# lower bound
-                                   u <- which.max(cm)	# upper bound
-                                   if(cm[u]-max(cm[1],cm[n])>min(cm[1],cm[n])-cm[l]) {
-                                        segPoint <- u
-                                   } 
-                                   else {
-                                        segPoint <- l
-                                   }
-                                   if (segPoint>1 && segPoint<n) {
-                                        segPoints<-c(segPoints, segPoint)
-                                   }
-                              }
-                              if(nSegs[i,j]==2) {
-                                   distMaxMin <- 0
-                                   distMinMax <- 0
-                                   minL <- Inf
-                                   maxL <- -Inf
-                                   for(sims in 1:n) {
-                                        #max-min pattern
-                                        if(cm[sims]>maxL) {
-                                             maxLP <- sims
-                                             maxL<-cm[sims]
-                                        }
-                                        else {
-                                             if(maxL-cm[sims]>distMaxMin) {
-                                                  distMaxMin <- maxL-cm[sims]
-                                                  segMaxMinL <- maxLP
-                                                  segMaxMinR <- sims
-                                             }
-                                        }
-                                        #min-max pattern
-                                        if(cm[sims]<minL) {
-                                             minLP <- sims
-                                             minL <- cm[sims]
-                                        } 
-                                        else {
-                                             if(cm[sims]-minL>distMinMax) {
-                                                  distMinMax <- cm[sims]-minL
-                                                  segMinMaxL <- minLP	
-                                                  segMinMaxR <- sims
-                                             }
-                                        }
-                                   }
-                                   siMaxMin<-cm[segMaxMinL]+distMaxMin+(cm[n]-cm[segMaxMinR])
-                                   siMinMax<--cm[segMaxMinL]+distMinMax-(cm[n]-cm[segMinMaxR])
-                                   if(siMaxMin>siMinMax) {
-                                        segPoint<-c(segMaxMinL,segMaxMinR)
-                                   } 
-                                   else {
-                                        segPoint<-c(segMinMaxL,segMinMaxR)
-                                   }
-                                   if (segPoint[1]>1 && segPoint[1]<n) {
-                                        segPoints<-c(segPoints, segPoint[1])
-                                   }
-                                   if (segPoint[2]>1 && segPoint[2]<n) {
-                                        segPoints<-c(segPoints, segPoint[2])
-                                   }
-                              }
-                         }
-                    }
-                    if(length(segPoints)>0) {
-                         segPoints2<-unique(c(0,segPoints[order(segPoints)], n))
-                         res[k] <- 0
-                         for(j in 1:(length(segPoints2)-1)) {
-                              res[k]<-res[k]+max(colSums(matrix(nbs[(1+segPoints2[j]):segPoints2[j+1],],ncol=d)))/n
-                         }
-                         res[k]<-res[k]-max(colMeans(nbs))
-                    } 
-                    else {
-                         res[k]<-0
-                    }
-               }
-          }
-          
-          if (length(parameters)>1) {
-               res <- list()
-               for (lp in 1:length(parameters)) {
-                    d <- he$n.comparators
-                    n <- he$n.sim
-                    w <- which(colnames(inputs)==parameters[lp])
-                    param <- inputs[,w]	# vector of simulations for the relevant parameter
-                    o <- order(param)
-                    param <- param[o]	# re-order the parameter vector
-                    nSegs<-matrix(1,d,d)
-                    nSegs[1,2] <- n.seps; 	nSegs[2,1] <- n.seps
-                    temp <- segPoints <- numeric()
-                    for (k in 1:length(he$k)) {
-                         nbs <- he$U[,k,]	# this is a n.sims x n.interventions matrix 
-                         # with the NB for each value of k
-                         nbs <- nbs[o,]	# re-arrange according to the parameter order
-                         for(i in 1:(d-1)) {
-                              for(j in (i+1):d) {
-                                   cm <- cumsum(nbs[,i]-nbs[,j])/n
-                                   if(nSegs[i,j]==1) {
-                                        l <- which.min(cm)	# lower bound
-                                        u <- which.max(cm)	# upper bound
-                                        if(cm[u]-max(cm[1],cm[n])>min(cm[1],cm[n])-cm[l]) {
-                                             segPoint <- u
-                                        } 
-                                        else {
-                                             segPoint <- l
-                                        }
-                                        if (segPoint>1 && segPoint<n) {
-                                             segPoints<-c(segPoints, segPoint)
-                                        }
-                                   }
-                                   if(nSegs[i,j]==2) {
-                                        distMaxMin <- 0
-                                        distMinMax <- 0
-                                        minL <- Inf
-                                        maxL <- -Inf
-                                        for(sims in 1:n) {
-                                             #max-min pattern
-                                             if(cm[sims]>maxL) {
-                                                  maxLP <- sims
-                                                  maxL<-cm[sims]
-                                             }
-                                             else {
-                                                  if(maxL-cm[sims]>distMaxMin) {
-                                                       distMaxMin <- maxL-cm[sims]
-                                                       segMaxMinL <- maxLP
-                                                       segMaxMinR <- sims
-                                                  }
-                                             }
-                                             #min-max pattern
-                                             if(cm[sims]<minL) {
-                                                  minLP <- sims
-                                                  minL <- cm[sims]
-                                             } 
-                                             else {
-                                                  if(cm[sims]-minL>distMinMax) {
-                                                       distMinMax <- cm[sims]-minL
-                                                       segMinMaxL <- minLP	
-                                                       segMinMaxR <- sims
-                                                  }
-                                             }
-                                        }
-                                        siMaxMin<-cm[segMaxMinL]+distMaxMin+(cm[n]-cm[segMaxMinR])
-                                        siMinMax<--cm[segMaxMinL]+distMinMax-(cm[n]-cm[segMinMaxR])
-                                        if(siMaxMin>siMinMax) {
-                                             segPoint<-c(segMaxMinL,segMaxMinR)
-                                        } 
-                                        else {
-                                             segPoint<-c(segMinMaxL,segMinMaxR)
-                                        }
-                                        if (segPoint[1]>1 && segPoint[1]<n) {
-                                             segPoints<-c(segPoints, segPoint[1])
-                                        }
-                                        if (segPoint[2]>1 && segPoint[2]<n) {
-                                             segPoints<-c(segPoints, segPoint[2])
-                                        }
-                                   }
-                              }
-                         }
-                         if(length(segPoints)>0) {
-                              segPoints2<-unique(c(0,segPoints[order(segPoints)], n))
-                              temp[k]<-0
-                              for(j in 1:(length(segPoints2)-1)) {
-                                   temp[k]<-temp[k]+max(colSums(matrix(nbs[(1+segPoints2[j]):segPoints2[j+1],],ncol=d)))/n
-                              }
-                              temp[k]<-temp[k]-max(colMeans(nbs))
-                         } 
-                         else {
-                              temp[k]<-0
-                         }
-                    }
-                    res[[lp]] <- temp 
-               }
-               names(res) <- parameters
-          }
-          res <- list(evppi=res,parameters=parameters,k=he$k,evi=he$evi,method="Sadatsafavi et al")
-     }
-     
-     ## Strong and Oakley (univariate)
-     if (method=="u.so" | (is.null(n.blocks)==FALSE & is.null(n.seps)==TRUE)) {
-          S <- he$n.sim 		# number of samples
-          J <- S/n.blocks	# constrains the parameters J,K to have product 
-          # equal to the number of simulations
-          check <- S%%n.blocks	# checks that Jxn.blocks = S with no remainder
-          if (check>0) {
-               stop("number of simulations/number of blocks must be an integer. Please select a different value for n.blocks \n")
-          }
-          D <- he$n.comparators 	# number of decision options
-          nk <- dim(he$U)[2]	     # number of k-values in the grid
-          # Checks how many parameters have been specified
-          if (length(parameters)==1) {
-               sort.order <- order(inputs[,which(parameters==colnames(inputs))])
-               sort.U <- array(NA,dim(he$U))
-               evpi <- res <- numeric()
-               for (i in 1:nk) {
-                    evpi[i] <- he$evi[i]
-                    sort.U[,i,] <- he$U[sort.order,i,]
-                    U.array <- array(sort.U[,i,],dim=c(J,n.blocks,D))
-                    mean.k <- apply(U.array,c(2,3),mean)
-                    partial.info <- mean(apply(mean.k,1,max))
-                    res[i] <- partial.info-max(apply(he$U[,i,],2,mean))
-               }
-          }
-          if (length(parameters)>1) {
-               res <- list()
-               for (j in 1:length(parameters)) {
-                    sort.order <- order(inputs[,which(parameters[j]==colnames(inputs))])
-                    sort.U <- array(NA,dim(he$U))
-                    evpi <- evppi.temp <- numeric()
-                    for (i in 1:nk) {
-                         evpi[i] <- he$evi[i]
-                         sort.U[,i,] <- he$U[sort.order,i,]
-                         U.array <- array(sort.U[,i,],dim=c(J,n.blocks,D))
-                         mean.k <- apply(U.array,c(2,3),mean)
-                         partial.info <- mean(apply(mean.k,1,max))
-                         evppi.temp[i] <- partial.info-max(apply(he$U[,i,],2,mean))
-                    }
-                    res[[j]] <- evppi.temp
-               }
-               names(res) <- parameters
-          }
-          res <- list(evppi=res,parameters=parameters,k=he$k,evi=he$evi,method="Strong & Oakley (univariate)")
-     }
-     class(res) <- "evppi"
-     return(res)
-}  
+    #Calculating a set of fitted values for each decision option (INB - to reduce fitting)
+    cat("Calculating fitted values for the GP regression \n")
+    d<-he$n.comparators
+    e.I<-list()
+    e.scale<-array()
+    e.g.hat<-matrix(NA,nrow=N,ncol=(d-1))
+    for(i in 1:(d-1)){
+      g <- he$comp[i]
+      e.I[[i]] <- as.matrix(-he$delta.e)[1:N,i]
+      e.scale[i] <- 6/(range(e.I[[i]])[2]-range(e.I[[i]])[1])
+      
+      A <- INLA::inla.spde.make.A(mesh=mesh, loc=Data.Scale,silent=2L)
+      #Sets up an spde object to be used in the INLA call
+      spde <- INLA::inla.spde2.matern(mesh=mesh, alpha=2)
+      #Data for the SPDE
+      stk.real <- INLA::inla.stack(tag='est', ## tag
+                                   data=list(y=e.I[[i]]*e.scale[i]), ## response
+                                   A=list(A, 1), ## two projector matrix
+                                   effects=list(## two elements:
+                                     s=1:spde$n.spde, ## RF index
+                                     data.frame(b0=1, x=cbind(Data.Scale,inputs.Scale))))
+      #Specifying the string for the regression model
+      inp <- names(stk.real$effects$data)[parameters+4]
+      form <- paste(inp, "+", sep="", collapse="")
+      formula <- paste("y~0+",form,"b0+ f(s, model=spde)", sep="", collapse="")
+      
+      #Using INLA to find the fitted values 
+      data <- INLA::inla.stack.data(stk.real)
+      ctr.pred <- INLA::inla.stack.A(stk.real)
 
-
-######multi.evppi##############################################################################################
-multi.evppi <- function(regr.mod,inputs,he,mcsim=1) {
-     # Performs calculations for multiparameter EVPPI
-     # regr.mod a string specifying the form of the non parametric regression in terms of the
-     #          parameters involved. "Main" effects are constructed with the format s(par),
-     #          where par is one of the parameters for the model being considered. Also, it
-     #          is possible to consider "interaction" terms, to account for correlation 
-     #          among parameters. This is done using the notation te(par1,par2), which 
-     #          defines the tensor function between par1 and par2
-     # inputs   is a matrix containing the simulations for all the relevant parameters. It
-     #          can be constructed by calling the function CreateInputs
-     # he       a bcea object including the health economic model
-     # mcsim    the number of Monte Carlo simulations to be performed in order to compute 
-     #          an estimation of the standard error and the bias of the approximation to the
-     #          EVPPI, due to the use of the non-parametric GAM regression
-     #     
-     # Input error
-     if (is.null(regr.mod)==TRUE) {
-          stop("You have selected the method of Strong and Oakley (multivariate).\n  Please specify the form of the non-parametric regression")
-     }
-     
-     requireNamespace("mgcv"); requireNamespace("MASS")
-     # Creates a label for the combination of parameters being used
-     # This is useful to the call to the function plot for the resulting evppi object
-     pars <- gsub("s(","",regr.mod,fixed=TRUE)
-     pars <- gsub(")","",pars,fixed=TRUE)
-     pars <- gsub("te(","",pars,fixed=TRUE)
-     pars <- gsub(","," : ",pars,fixed=TRUE)
-     
-     # Needs to modify the string for the parameters to use it with gam
-     # This is because gam needs a data.frame, but when making one out of the output of
-     # the function 'CreateInputs' the names of the variables get changed and if there
-     # was, say, a '[1]', originally, it becomes a '.1.' in the data.frame naming. So
-     # if we don't modify the format of regr.mod here, gam won't find the correct variable
-     regr.mod <- gsub("[",".",regr.mod,fixed=TRUE)
-     regr.mod <- gsub("]",".",regr.mod,fixed=TRUE)
-     
-     evppi <- sampled.partial.evpi <- SE <- upward.bias <- numeric()
-     D <- he$n.comparisons
-     N <- he$n.sim
-     IB <- matrix(NA,nrow=N,ncol=D) # defines a matrix of incremental benefits
-     residuals <- fitted <- vector("list",length(he$k))
-     
-     cat("\nRunning multiparameter EVPPI\n")
-     pb <- txtProgressBar(min=0,max=length(he$k),style=3,width=50)
-     for (k in 1:length(he$k)) {
-          Sys.sleep(0.1)
-          setTxtProgressBar(pb, k)
-          
-          # Now, for each k puts the incremental benefits in the matrix IB
-          # If D=1, then there is only one row (one decision) and n.sim columns
-          if (D==1) {
-               IB[,1] <- -he$ib[k,]
-          } else {
-               # If there are more decisions, then there are D rows
-               IB <- -he$ib[k,,]
-          }
-          
-          g.hat <- beta.hat <- Xstar <- V <- tilde.g <- resd <- vector("list",D)
-          for(d in 1:D) {
-               f <- update(formula(IB[,d]~.),formula(paste(".~",regr.mod)))
-               model <- mgcv::gam(f,data=data.frame(inputs)) 
-               g.hat[[d]] <- model$fitted.values
-               
-               # Compute residuals for all decisions and for a given value of k
-               resd[[d]] <- IB[,d]-g.hat[[d]]
-               
-               if (mcsim>1) {
-                    # Now computes the SE and the upward bias for the EVPPI
-                    beta.hat[[d]] <- model$coefficients
-                    Xstar[[d]] <- predict(model,type="lpmatrix")
-                    V[[d]] <- model$Vp
-                    sampled.coef <- MASS::mvrnorm(mcsim,beta.hat[[d]],V[[d]])
-                    tilde.g[[d]] <- sampled.coef%*%t(Xstar[[d]])  
-               }
-          }
-          if (mcsim>1) {
-               temp <- matrix(pmax(0,do.call(pmax,tilde.g)),nrow=mcsim,ncol=N)
-               sampled.perfect.info <- rowMeans(temp)
-               sampled.baseline <- pmax(0,do.call(pmax,lapply(tilde.g,rowMeans)))
-               sampled.partial.evpi <- sampled.perfect.info - sampled.baseline
-          }
-          
-          perfect.info <- mean(pmax(0,do.call(pmax,g.hat))) 
-          baseline <- max(0,unlist(lapply(g.hat,mean)))
-          evppi[k] <- perfect.info - baseline                         # estimate EVPPI          
-          SE[k] <- sd(sampled.partial.evpi)                           # SE of approx
-          upward.bias[k] <- mean(sampled.partial.evpi) - evppi[k]     # bias of approx
-          residuals[[k]] <- resd
-          fitted[[k]] <- g.hat
-          rm(g.hat,V,beta.hat,Xstar,tilde.g);gc()
-     }
-     close(pb)
-     res <- list(evppi=evppi,parameters=pars,k=he$k,evi=he$evi,SE=SE,
-                 upward.bias=upward.bias,method="Strong and Oakley (multivariate)",
-                 residuals=residuals,fitted=fitted)
-     class(res) <- "evppi"
-     return(res)
+      # NB Matrix will throw a NOTE --- but suppressMessages will avoid this
+      Result <- suppressMessages({
+		INLA::inla(as.formula(formula),
+                           data=data,family="gaussian",
+                           control.predictor=list(A=ctr.pred,link=1),
+                           control.inla=list(h=h.value),control.compute=list(config=T))})    
+      
+      rescaled <- (Result$summary.linear.predictor[1:N,"mean"]/e.scale[i])
+      e.g.hat[,i] <- rescaled
+    }
+    
+    c.I <- list()
+    c.scale <- array()
+    c.g.hat <- matrix(NA,nrow=N,ncol=(d-1))
+    for(i in 1:(d-1)){
+      g <- he$comp[i]
+      c.I[[i]] <- as.matrix(-he$delta.c)[1:N,i]
+      c.scale[i] <- 6/(range(c.I[[i]])[2]-range(c.I[[i]])[1])
+      
+      A <- INLA::inla.spde.make.A(mesh=mesh, loc=Data.Scale,silent=2L)
+      #Sets up an spde object to be used in the INLA call
+      spde <- INLA::inla.spde2.matern(mesh=mesh, alpha=2)
+      #Data for the SPDE
+      stk.real <- INLA::inla.stack(tag='est', ## tag
+                                   data=list(y=c.I[[i]]*c.scale[i]), ## response
+                                   A=list(A, 1), ## two projector matrix
+                                   effects=list(## two elements:
+                                     s=1:spde$n.spde, ## RF index
+                                     data.frame(b0=1, x=cbind(Data.Scale,inputs.Scale))))
+      
+      data <- INLA::inla.stack.data(stk.real)
+      ctr.pred <- INLA::inla.stack.A(stk.real)
+      Result <- suppressMessages({INLA::inla(as.formula(formula),
+                           data=data,family="gaussian",
+                           control.predictor=list(A=ctr.pred,link=1),
+                           control.inla=list(h=h.value),control.compute=list(config=T))})
+      
+      rescaled <- (Result$summary.linear.predictor[1:N,"mean"]/c.scale[i])
+      c.g.hat[,i] <- rescaled
+    }
+    cat("Calculating EVPPI \n")
+    EVPPI <- array()
+    for(i in 1:length(he$k)){
+      NB.k.mid <- he$k[i]*e.g.hat-c.g.hat
+      NB.k <- cbind(NB.k.mid,rep(0,N))
+      EVPPI[i] <- (mean(apply(NB.k,1,max,na.rm=T))-max(apply(NB.k,2,mean,na.rm=T)))
+    }
+    toc <- proc.time()-tic
+  }
+  #Creates names for plot.evppi function
+  if(length(parameter)==1){
+    if(class(parameter)=="numeric"){
+      name=colnames(input)[parameter]
+    }
+    else{name=parameter}
+  }else{
+    if(class(parameter)=="integer"){
+      n.param <- length(parameter)
+      end <- colnames(input)[parameter[n.param]]
+      name.mid <- paste(colnames(input)[parameter[1:n.param-1]],", ",sep="",collapse=" ")
+      name <- paste(name.mid,"and ", end,sep="",collapse=" ")
+    }else{
+      n.param <- length(parameter)
+      end <- parameter[n.param]
+      name.mid <- paste(parameter[1:n.param-1],", ",sep="",collapse=" ")
+      name <- paste(name.mid,"and ", end,sep="",collapse=" ")
+    }
+  }
+  # Formats computational time
+  time <- toc[3]; names(time)="Time to run (seconds)"
+  if(residuals==TRUE){
+    res <- list(evppi=EVPPI,index=parameters,k=he$k,evi=he$evi,g.hat.costs=c.g.hat,
+	      g.hat.effects=e.g.hat,parameters=name,time=time)
+  }
+  else{
+    res <- list(evppi=EVPPI,parameters=name,k=he$k,evi=he$evi,
+              index=parameters,time=time)
+  }
+  
+  class(res)<-"evppi"
+  return(res)
 }
-
-
-
-######diag.evppi##############################################################################################
-diag.evppi <- function(x,k=NULL,t=1,diag=c("residuals","qqplot","bias","se")) {
-     ## Performs diagnostic plots for the results of the multiparameter EVPPI
-     ## x is a evppi object containing the results of the multiparameter computations
-     ## k is the value of the willingness to pay selected for the analysis
-     ##   if the diagnostics selected is either residual or qqplot, then it needs to be
-     ##   specified. If it is either bias or se plot, it is not relevant
-     ## t is the intervention selected for the analysis. If it is left unspecified, the 
-     ##   default value 1 for the first intervention will be used
-     ## diag is a text string specifying the diagnostics to be performed. The default value
-     ##   is 'residuals'. Other possibilities are 'qqplot', 'bias' and 'se'
-     
-     mod <- ifelse(diag=="residuals",1,ifelse(diag=="qqplot",2,ifelse(diag=="bias",3,4)))
-     if (length(mod)>1) {mod <- 1}
-     if (mod==1) {
-          if (is.null(k)) {       
-               text <- paste0("\nPlease select a value for the willingness to pay k (in the range [",min(x$k),";",max(x$k),"])")
-               stop(text)
-          }
-          k <- min(which(x$k>=k))
-          text <- paste0("Residuals vs fitted - intervention ",t,", k=",x$k[k],"\n",x$parameters)
-          plot(x$fitted[[k]][[t]],x$residuals[[k]][[t]],xlab="Fitted values",ylab="Residuals",
-               main=text)
-          abline(h=0,lwd=2)
-     }
-     if (mod==2) {
-          if (is.null(k)) {       
-               text <- paste0("\nPlease select a value for the willingness to pay k (in the range [",min(x$k),";",max(x$k),"])")
-               stop(text)
-          }
-          k <- min(which(x$k>=k))
-          text <- paste0("Normal QQ-plot - intervention ",t,", k=",x$k[k],"\n",x$parameters)
-          qqnorm(x$fitted[[k]][[t]],main=text)
-          qqline(x$fitted[[k]][[t]])          
-     }
-     if (mod==3) {
-          text <- paste0("Approximation relative bias\n",x$parameters)
-          plot(x$k,x$upward.bias/x$evppi,t="l",xlab="Willingness to pay",
-               ylab="Relative upward bias (Bias/EVPPI)", main=text)
-          abline(h=0,lwd=2,col="dark grey")
-     }
-     if (mod==4) {
-          text <- paste0("Standard error of approximation\n",x$parameters)
-          plot(x$k,x$SE,t="l",xlab="Willingness to pay",ylab="SE",
-               main=text)
-          abline(h=0,lwd=2,col="dark grey")          
-     }
-}
-
 
 
 ######plot.evppi##############################################################################################
@@ -2814,15 +2641,16 @@ plot.evppi <- function(x,pos=c(0,0.8),graph=c("base","ggplot2"),col=NULL,...) {
           if (length(x$parameters)==1) {
                points(x$k,x$evppi,t="l",col=col,lty=1)
           }
-          cmd <- paste("EVPPI for ",x$parameters,sep="")
-          # In case of more parameters, we need to make the graph more readable -- adds a label to each line
-          if (length(x$parameters)>1) {
-               for (i in 1:length(x$parameters)) {
-                    points(x$k,x$evppi[[i]],t="l",col=col[i],lty=i)
-                    text(par("usr")[2],x$evppi[[i]][length(x$k)],paste("(",i,")",sep=""),cex=.7,pos=2)
-               }
-               cmd <- paste("(",paste(1:length(x$parameters)),") EVPPI for ",x$parameters,sep="")
-          }
+          cmd <- "EVPPI for the selected\nsubset of parameters"
+          if(nchar(x$parameters)<=25) {cmd <- paste("EVPPI for ",x$parameters,sep="")}
+##           # In case of more parameters, we need to make the graph more readable -- adds a label to each line
+##           if (length(x$parameters)>1) {
+##                for (i in 1:length(x$parameters)) {
+##                     points(x$k,x$evppi[[i]],t="l",col=col[i],lty=i)
+##                     text(par("usr")[2],x$evppi[[i]][length(x$k)],paste("(",i,")",sep=""),cex=.7,pos=2)
+##                }
+##                cmd <- paste("(",paste(1:length(x$parameters)),") EVPPI for ",x$parameters,sep="")
+##           }
           legend(alt.legend,c("EVPI",cmd),col=c("black",col),cex=.7,bty="n",
                  lty=c(1,1:length(x$parameters)),lwd=c(2,rep(1,length(x$parameters))))
           return(invisible(NULL))
@@ -2840,6 +2668,37 @@ plot.evppi <- function(x,pos=c(0,0.8),graph=c("base","ggplot2"),col=NULL,...) {
           }
      }
 }
+
+
+
+######diag.evppi################################################################################################
+diag.evppi <- function(x,y,diag=c("residuals","qqplot"),int=1){
+# x = an evppi object
+# y = a bcea object
+# diag = the type of diagnostics required
+# int = the intervention to be assessed
+	res <- ifelse(isTRUE(pmatch(diag,c("residuals","qqplot"))==2),FALSE,TRUE)
+	if(res){
+		par(mfrow=c(1,2))
+		n <- dim(x$g.hat.costs)[1]
+		fitted <- x$g.hat.costs[,int]
+		residual <- as.matrix(y$delta.c)[1:n,int]-fitted
+		plot(fitted,residual,xlab="Fitted values",
+			ylab="Residuals",main="Residual plot for costs",cex=.8);abline(h=0)
+		fitted <- x$g.hat.effects[,int]
+		residual <- as.matrix(y$delta.e)[1:n,int]-fitted
+		plot(fitted,residual,xlab="Fitted values",
+			ylab="Residuals",main="Residual plot for effects",cex=.8);abline(h=0)
+	}else{
+		par(mfrow=c(1,2))
+		qqnorm(x$g.hat.costs[,int],main="Normal Q-Q plot \n(costs)"); qqline(x$g.hat.costs[,int])
+		qqnorm(x$g.hat.effects[,int],main="Normal Q-Q plot \n(effects)"); qqline(x$g.hat.effects[,int])
+	}
+
+}
+
+
+
 
 
 ######CreateInputs##############################################################################################

@@ -4,7 +4,8 @@
 Plots the probability that each intervention is the most cost-effective
 }
 \description{
-Plots the probability that each of the n_int interventions being analysed is the most cost-effective.
+Plots the probability that each of the n_int interventions being analysed is the most 
+cost-effective.
 }
 \usage{
 mce.plot(mce,pos=c(1,0.5),graph=c("base","ggplot2"))
@@ -14,10 +15,17 @@ mce.plot(mce,pos=c(1,0.5),graph=c("base","ggplot2"))
 The output of the call to the function \code{\link{multi.ce}}.
 }
   \item{pos}{
-Parameter to set the position of the legend. Can be given in form of a string \code{(bottom|top)(right|left)} for base graphics and \code{bottom|top|left|right} for ggplot2. It can be a two-elements vector, which specifies the relative position on the x and y axis respectively, or alternatively it can be in form of a logical variable, with \code{TRUE} indicating to use the first standard and \code{FALSE} to use the second one. Default value is \code{c(1,0.5)}, that is on the right inside the plot area.
+Parameter to set the position of the legend. Can be given in form of a string 
+\code{(bottom|top)(right|left)} for base graphics and \code{bottom|top|left|right} 
+for ggplot2. It can be a two-elements vector, which specifies the relative position on 
+the x and y axis respectively, or alternatively it can be in form of a logical variable, 
+with \code{TRUE} indicating to use the first standard and \code{FALSE} to use the second 
+one. Default value is \code{c(1,0.5)}, that is on the right inside the plot area.
   }
   \item{graph}{
-A string used to select the graphical engine to use for plotting. Should (partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is \code{"base"}.
+A string used to select the graphical engine to use for plotting. Should 
+(partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is 
+\code{"base"}.
   }
 }
 \value{
@@ -29,7 +37,8 @@ A ggplot object containing the plot. Returned only if \code{graph="ggplot2"}.
 Gianluca Baio, Andrea Berardi
 }
 \references{
-Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. Statistical Methods in Medical Research doi:10.1177/0962280211419832.
+Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. 
+Statistical Methods in Medical Research doi:10.1177/0962280211419832.
 
 Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London
 }
@@ -61,7 +70,7 @@ m <- bcea(e=e,c=c,          # defines the variables of
 #
 mce <- multi.ce(m)          # uses the results of the economic analysis 
 #
-mce.plot(mce,               # plots the probability of being the most cost-effective
+mce.plot(mce,               # plots the probability of being most cost-effective
       graph="base")         #  using base graphics
 #
 if(require(ggplot2)){

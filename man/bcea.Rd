@@ -26,26 +26,30 @@ for each intervention being considered. In general it is a matrix with \code{nsi
 and \code{nint} columns.
 }
   \item{c}{
-An object containing \code{nsim} simulations for the variable of cost for each intervention 
-being considered. In general it is a matrix with \code{nsim} rows and \code{nint} columns.
+An object containing \code{nsim} simulations for the variable of cost for each 
+intervention being considered. In general it is a matrix with \code{nsim} rows and 
+\code{nint} columns.
 }
   \item{ref}{
 Defines which intervention (columns of \code{e} or \code{c}) is considered to be 
-the reference strategy. The default value \code{ref=1} means that the intervention associated with 
-the first column of \code{e} or \code{c} is the reference and the one(s) associated with the 
-other column(s) is(are) the comparators.
+the reference strategy. The default value \code{ref=1} means that the intervention 
+associated with the first column of \code{e} or \code{c} is the reference and the one(s) 
+associated with the other column(s) is(are) the comparators.
 }
   \item{interventions}{
-Defines the labels to be associated with each intervention. By default and if \code{NULL}, assigns 
-labels in the form "Intervention1", ... , "Intervention T".
+Defines the labels to be associated with each intervention. By default and if 
+\code{NULL}, assigns labels in the form "Intervention1", ... , "Intervention T".
 }
   \item{Kmax}{
-Maximum value of the willingness to pay to be considered. Default value is \code{k=50000}. The 
-willingness to pay is then approximated on a discrete grid in the interval \code{[0,Kmax]}. 
-The grid is equal to \code{wtp} if the parameter is given, or composed of \code{501} elements if \code{wtp=NULL} (the default).
+Maximum value of the willingness to pay to be considered. Default value is 
+\code{k=50000}. The willingness to pay is then approximated on a discrete grid in the 
+interval \code{[0,Kmax]}. The grid is equal to \code{wtp} if the parameter is given, or 
+composed of \code{501} elements if \code{wtp=NULL} (the default).
 }
   \item{wtp}{
-A(n optional) vector wtp including the values of the willingness to pay grid. If not specified then BCEA will construct a grid of 501 values from 0 to Kmax. This option is useful when performing intensive computations (eg for the EVPPI).
+A(n optional) vector wtp including the values of the willingness to pay grid. If not 
+specified then BCEA will construct a grid of 501 values from 0 to Kmax. This option is 
+useful when performing intensive computations (eg for the EVPPI).
 }
   \item{plot}{
 A logical value indicating whether the function should produce the summary plot or not.
@@ -68,19 +72,20 @@ the willingness to pay}
   \item{eib}{The value for the Expected Incremental Benefit, as a function of the 
 willingness to pay}
   \item{kstar}{The grid approximation of the break even point(s)}
-  \item{best}{A vector containing the numeric label of the intervention that is the 
-most cost-effective for each value of the willingness to pay in the selected grid approximation}
+  \item{best}{A vector containing the numeric label of the intervention that is the most 
+cost-effective for each value of the willingness to pay in the selected grid approximation}
   \item{U}{An array including the value of the expected utility for each simulation from 
 the Bayesian model, for each value of the grid approximation of the willingness to pay and 
 for each intervention being considered}
-  \item{vi}{An array including the value of information for each simulation from the Bayesian 
-model and for each value of the grid approximation of the willingness to pay}
-  \item{Ustar}{An array including the maximum "known-distribution" utility for each simulation 
-from the Bayesian model and for each value of the grid approximation of the willingness to pay}
-  \item{ol}{An array including the opportunity loss for each simulation from the Bayesian model 
-and for each value of the grid approximation of the willingness to pay}
-  \item{evi}{The vector of values for the Expected Value of Information, as a function of 
+\item{vi}{An array including the value of information for each simulation from the 
+Bayesian model and for each value of the grid approximation of the willingness to pay}
+\item{Ustar}{An array including the maximum "known-distribution" utility for each 
+simulation from the Bayesian model and for each value of the grid approximation of 
 the willingness to pay}
+  \item{ol}{An array including the opportunity loss for each simulation from the Bayesian 
+model and for each value of the grid approximation of the willingness to pay}
+  \item{evi}{The vector of values for the Expected Value of Information, as a function 
+of the willingness to pay}
   \item{interventions}{A vector of labels for all the interventions considered}
   \item{ref}{The numeric index associated with the intervention used as reference in the analysis}
   \item{comp}{The numeric index(es) associated with the intervention(s) used as comparator(s) 

@@ -13,25 +13,41 @@ Plots the EIB and the EVPI when risk aversion is included in the utility functio
 }
 \arguments{
   \item{x}{
-An object of the class \code{CEriskav}, containing the results of the economic analysis performed accounting for a risk aversion parameter (obtained as output of the function \code{\link{CEriskav}}).
+An object of the class \code{CEriskav}, containing the results of the economic 
+analysis performed accounting for a risk aversion parameter (obtained as output of 
+the function \code{\link{CEriskav}}).
 }
   \item{pos}{
-Parameter to set the position of the legend. Can be given in form of a string \code{(bottom|top)(right|left)} for base graphics and \code{bottom|top|left|right} for ggplot2. It can be a two-elements vector, which specifies the relative position on the x and y axis respectively, or alternatively it can be in form of a logical variable, with \code{FALSE} indicating to use the default position and \code{TRUE} to place it on the bottom of the plot. Default value is \code{c(0,1)}, that is in the topleft corner inside the plot area.
+Parameter to set the position of the legend. Can be given in form of a string 
+\code{(bottom|top)(right|left)} for base graphics and \code{bottom|top|left|right} 
+for ggplot2. It can be a two-elements vector, which specifies the relative position 
+on the x and y axis respectively, or alternatively it can be in form of a logical 
+variable, with \code{FALSE} indicating to use the default position and \code{TRUE} 
+to place it on the bottom of the plot. Default value is \code{c(0,1)}, that is in 
+the topleft corner inside the plot area.
   }
   \item{graph}{
-A string used to select the graphical engine to use for plotting. Should (partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is \code{"base"}.
+A string used to select the graphical engine to use for plotting. Should 
+(partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value 
+is \code{"base"}.
   }
 \item{...}{
-Arguments to be passed to methods, such as graphical parameters (see \code{\link{par}}).
+Arguments to be passed to methods, such as graphical parameters (see 
+\code{\link{par}}).
 }
 }
 
 \value{
-\item{list(eib,evi)}{A two-elements named list of the ggplot objects containing the requested plots. Returned only if \code{graph="ggplot2"}.}
-The function produces two plots for the risk aversion analysis. The first one is the EIB as a function of the discrete grid approximation of the willingness parameter for each of the possible values of the risk aversion parameter, r. The second one is a similar plot for the EVPI.
+\item{list(eib,evi)}{A two-elements named list of the ggplot objects containing 
+the requested plots. Returned only if \code{graph="ggplot2"}.}
+The function produces two plots for the risk aversion analysis. The first one is 
+the EIB as a function of the discrete grid approximation of the willingness parameter 
+for each of the possible values of the risk aversion parameter, r. The second one is 
+a similar plot for the EVPI.
 }
 \references{
-Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. Statistical Methods in Medical Research doi:10.1177/0962280211419832.
+Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. 
+Statistical Methods in Medical Research doi:10.1177/0962280211419832.
 
 Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London
 }

@@ -13,16 +13,26 @@ Compares the optimal scenario to the mixed case in terms of the EVPI
 %- maybe also 'usage' for other objects documented here.
 \arguments{
 \item{x}{
-An object of class \code{mixedAn}, given as output of the call to the function \code{\link{mixedAn}}.
+An object of class \code{mixedAn}, given as output of the call to the function 
+\code{\link{mixedAn}}.
 }
 \item{y.limits}{
-Range of the y-axis for the graph. The default value is \code{NULL}, in which case the maximum range between the optimal and the mixed analysis scenarios is considered.
+Range of the y-axis for the graph. The default value is \code{NULL}, in which case the 
+maximum range between the optimal and the mixed analysis scenarios is considered.
 }
   \item{pos}{
-Parameter to set the position of the legend. Can be given in form of a string \code{(bottom|top)(right|left)} for base graphics and \code{bottom|top|left|right} for ggplot2. It can be a two-elements vector, which specifies the relative position on the x and y axis respectively, or alternatively it can be in form of a logical variable, with \code{FALSE} indicating to use the default position and \code{TRUE} to place it on the bottom of the plot. Default value is \code{c(0,1)}, that is in the topleft corner inside the plot area.
+Parameter to set the position of the legend. Can be given in form of a string 
+\code{(bottom|top)(right|left)} for base graphics and \code{bottom|top|left|right} 
+for ggplot2. It can be a two-elements vector, which specifies the relative position on 
+the x and y axis respectively, or alternatively it can be in form of a logical 
+variable, with \code{FALSE} indicating to use the default position and \code{TRUE} to 
+place it on the bottom of the plot. Default value is \code{c(0,1)}, that is in the 
+topleft corner inside the plot area.
   }
   \item{graph}{
-A string used to select the graphical engine to use for plotting. Should (partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is \code{"base"}.
+A string used to select the graphical engine to use for plotting. Should 
+(partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is 
+\code{"base"}.
   }
 \item{...}{
 Arguments to be passed to methods, such as graphical parameters (see \code{\link{par}}).
@@ -33,12 +43,16 @@ Arguments to be passed to methods, such as graphical parameters (see \code{\link
 \item{evi}{
 A ggplot object containing the plot. Returned only if \code{graph="ggplot2"}.
 }
-The function produces a graph showing the difference between the ''optimal'' version of the EVPI (when only the most cost-effective intervention is included in the market) and the mixed strategy one (when more than one intervention is considered in the market).
+The function produces a graph showing the difference between the ''optimal'' version of 
+the EVPI (when only the most cost-effective intervention is included in the market) and 
+the mixed strategy one (when more than one intervention is considered in the market).
 }
 \references{
-Baio, G. and Russo, P. (2009).A decision-theoretic framework for the application of cost-effectiveness analysis in regulatory processes. Pharmacoeconomics 27(8), 645-655 doi:10.2165/11310250
+Baio, G. and Russo, P. (2009).A decision-theoretic framework for the application of cost-effectiveness analysis in regulatory processes. Pharmacoeconomics 27(8), 645-655 
+doi:10.2165/11310250
 
-Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. Statistical Methods in Medical Research doi:10.1177/0962280211419832.
+Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. 
+Statistical Methods in Medical Research doi:10.1177/0962280211419832.
 
 Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London
 }

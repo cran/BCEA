@@ -4,18 +4,21 @@
 Cost-effectiveness analysis with multiple comparison
 }
 \description{
-Computes and plots the probability that each of the n_int interventions being analysed is the most cost-effective and the cost-effectiveness acceptability frontier
+Computes and plots the probability that each of the n_int interventions being analysed 
+is the most cost-effective and the cost-effectiveness acceptability frontier
 }
 \usage{
 multi.ce(he)
 }
 \arguments{
   \item{he}{
-A \code{bcea} object containing the results of the Bayesian modelling and the economic evaluation.
+A \code{bcea} object containing the results of the Bayesian modelling and the economic 
+evaluation.
 }
 }
 \value{
-\item{m.ce}{A matrix including the probability that each intervention is the most cost-effective for all values of the willingness to pay parameter}
+\item{m.ce}{A matrix including the probability that each intervention is the most 
+cost-effective for all values of the willingness to pay parameter}
 \item{ceaf}{A vector containing the cost-effectiveness acceptability frontier}
 }
 \author{

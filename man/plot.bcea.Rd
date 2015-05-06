@@ -5,42 +5,61 @@
 Summary plot of the health economic analysis
 }
 \description{
-Plots in a single graph the Cost-Effectiveness plane, the Expected Incremental Benefit, the CEAC and the EVPI
+Plots in a single graph the Cost-Effectiveness plane, the Expected Incremental Benefit, 
+the CEAC and the EVPI
 }
 \usage{
-\method{plot}{bcea}(x, comparison=NULL, wtp=25000, pos=FALSE, graph=c("base","ggplot2"), ...)
+\method{plot}{bcea}(x, comparison=NULL, wtp=25000, pos=FALSE, 
+graph=c("base","ggplot2"), ...)
 }
 \arguments{
 \item{x}{
-A \code{bcea} object containing the results of the Bayesian modelling and the economic evaluation.
+A \code{bcea} object containing the results of the Bayesian modelling and the economic 
+evaluation.
 }
 \item{comparison}{
-Selects the comparator, in case of more than two interventions being analysed. The value is passed to \code{\link{ceplane.plot}}, \code{\link{eib.plot}} and \code{\link{ceac.plot}}.
+Selects the comparator, in case of more than two interventions being analysed. The value 
+is passed to \code{\link{ceplane.plot}}, \code{\link{eib.plot}} and \code{\link{ceac.plot}}.
 }
 \item{wtp}{
 The value of the willingness to pay parameter. It is passed to \code{\link{ceplane.plot}}.
 }
 \item{pos}{
-Parameter to set the position of the legend. Can be given in form of a string, a single logical value, or a two-element vector with the respective relative positions on the x and y axis. Default as \code{FALSE} sets the legend position to the default one for each plot (see the details section), while \code{TRUE} puts it on the bottom of each plot. Changes will affect all the individual plots.
+Parameter to set the position of the legend. Can be given in form of a string, a single 
+logical value, or a two-element vector with the respective relative positions on the x 
+and y axis. Default as \code{FALSE} sets the legend position to the default one for each 
+plot (see the details section), while \code{TRUE} puts it on the bottom of each plot. 
+Changes will affect all the individual plots.
 }
 \item{graph}{
-A string used to select the graphical engine to use for plotting. Should (partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value is \code{"base"}.
+A string used to select the graphical engine to use for plotting. Should 
+(partial-)match the two options \code{"base"} or \code{"ggplot2"}. Default value 
+is \code{"base"}.
 }
 \item{...}{
-Arguments to be passed to the methods \code{\link{ceplane.plot}} and \code{\link{eib.plot}}. Please see the manual pages for the individual functions. Arguments like \code{size}, \code{ICER.size} and \code{plot.cri} can be supplied to the functions in this way. In addition if \code{graph="ggplot2"} and the arguments are named theme objects they will be added to each plot.
+Arguments to be passed to the methods \code{\link{ceplane.plot}} and 
+\code{\link{eib.plot}}. Please see the manual pages for the individual functions. 
+Arguments like \code{size}, \code{ICER.size} and \code{plot.cri} can be supplied to 
+the functions in this way. In addition if \code{graph="ggplot2"} and the arguments 
+are named theme objects they will be added to each plot.
 }
 }
 
 \value{
-The function produces a plot with four graphical summaries of the health economic evaluation.
+The function produces a plot with four graphical summaries of the health economic 
+evaluation.
 }
 \details{
-The default position of the legend for the cost-effectiveness plane (produced by \code{\link{ceplane.plot}}) is set to \code{c(1,1.025)} overriding its default for \code{pos=FALSE}, since multiple ggplot2 plots are rendered in a slightly different way than single plots.
+The default position of the legend for the cost-effectiveness plane (produced by 
+\code{\link{ceplane.plot}}) is set to \code{c(1,1.025)} overriding its default for 
+\code{pos=FALSE}, since multiple ggplot2 plots are rendered in a slightly different 
+way than single plots.
 
 For more information see the documentation of each individual plot function.
 }
 \references{
-Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. Statistical Methods in Medical Research doi:10.1177/0962280211419832.
+Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics. 
+Statistical Methods in Medical Research doi:10.1177/0962280211419832.
 
 Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London
 }
