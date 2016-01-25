@@ -38,6 +38,8 @@ patients for the row-specific arm and \code{b_i}: the reference intervention for
 each study}
     \item{\code{smoking_output}}{a \code{rjags} object obtained by running the 
 network meta-analysis model based on the data contained in the \code{smoking} object}
+    \item{\code{smoking_mat}}{a matrix obtained by running the 
+network meta-analysis model based on the data contained in the \code{smoking} object}
     \item{\code{treats}}{a vector of labels associated with the four strategies}
   }
 }

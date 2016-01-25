@@ -77,6 +77,8 @@ associated with penumonia}
     \item{\code{treats}}{a vector of labels associated with the two treatments}
     \item{\code{vaccine}}{a \code{rjags} object containing the simulations for the parameters
 used in the original model}
+    \item{\code{vaccine_mat}}{a matrix containing the simulations for the parameters
+used in the original model}
   }
 }
 
