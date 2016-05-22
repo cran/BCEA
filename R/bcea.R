@@ -19,6 +19,7 @@
 ## v2.2   GB October 2015: cleaned up and aligned with R's settings. EVPPI function polished up
 ## v2.2.1 GB+AH October 2015: adds the info-rank plot
 ## v2.2.2 AB January 2016: minor change to ceef.plot to align with ggplot2 v2.0.0
+## v2.2.3 AH+GB May 2016: major update for the EVPPI to include PFC + fixed issues with info.rank
 ## (C) Gianluca Baio + contributions by Andrea Berardi, Chris Jackson, Mark Strong & Anna Heath
 
 ###Functions included################################################################################
@@ -34,6 +35,7 @@
 # contour2
 # contour.bcea
 # CreateInputs
+# diag.evppi
 # eib.plot
 # evi.plot
 # evppi
@@ -52,10 +54,6 @@
 # struct.psa
 # summary.bcea
 # summary.mixedAn
-# evppi0
-# evppi0.default
-# plot.evppi0
-
 
 ###bcea##############################################################################################
 bcea <- function(e,c,ref=1,interventions=NULL,Kmax=50000,wtp=NULL,plot=FALSE) UseMethod("bcea")
@@ -2447,43 +2445,351 @@ ceaf.plot <- function(mce,graph=c("base","ggplot2")){
 
 
 ######evppi###################################################################################################
-evppi <- function(parameter,input,he,N=NA,plot=F,residuals=T,...) UseMethod("evppi") 
-### AH Version 3 Dec 2015
-evppi.default<-function (parameter, input, he, N = NA, plot = F, residuals = T, ...) {
-  #Additional options to determine mesh parameters???
-  #inputs must be as a data frame to extract column names for GAM regression  
-  if (class(parameter[1]) == "character") {
-    parameters <- array()
-    for (i in 1:length(parameter)) {
-      parameters[i] <- which(colnames(input) == parameter[i])
-    }
+evppi <- function (parameter, input, he, N = NULL, plot = F, residuals = T,...) UseMethod("evppi")
+
+evppi.default<-function (parameter, input, he, N = NULL, plot = F, residuals = T,...) {
+  
+  # This function has been completely changed and restructured to make it possible to change regression method.  
+  # The method arguement can now be given as a list. The first element element in the list is a vector giving the 
+  # regression method for the effects. The second gives the regression method for the costs. The `method' argument 
+  # can also be given as before which then uses the same regression method for all curves. All other exArgs can be 
+  # given as before. 'int.ord' can be updated using the list forumlation above to give the interactions for each 
+  # different curve. The formula arguement for GAM can only be given once, either 'te()' or 's()+s()' as this is 
+  # for computational reasons rather than to aid fit. You can still plot the INLA mesh elements but not output the meshes.
+  
+  if (class(parameter[1]) == "numeric" | class(parameter[1]) == "integer") {
+    parameters = colnames(input)[parameter]
   }
   else {
     parameters = parameter
-    parameter = colnames(input)[parameters]
+    for (i in 1:length(parameters)) {
+      parameter[i] <- which(colnames(input) == parameters[i])
+    }
+    class(parameter)<-"numeric"
   }
   if (is.null(N)) {
     N <- he$n.sim
   }
-  inputs <- data.frame(input)
   
-  # Specifies the value of options 'robust' to NULL (it can only be active if 'method'="INLA")
   robust <- NULL
-  
-  # Checks if method is specified by the user - can also use sal or so univariate
   exArgs <- list(...)
   
-  # Sets GAM regression as the default method for single parameter
+  if (!exists("select", where=exArgs) & N == he$n.sim) {
+    exArgs$select <- 1:he$n.sim
+  }
+  if (!exists("select", where=exArgs) & N < he$n.sim) {
+    exArgs$select <- sample(1:he$n.sim, size = N, replace = F)
+  }
+  inputs <- data.frame(input)[exArgs$select,]
+  
+  
   if (length(parameter) == 1 & !exists("method", where = exArgs)) {
-    exArgs$method <- "GAM"
+    exArgs$method <- list(rep("GAM",he$n.comparators-1),rep("GAM",he$n.comparators-1))
   }
-  # Sets INLA as the default method for multiparameter, if not specified elsewhere
   if (length(parameter) > 1 & !exists("method", where = exArgs)) {
-    exArgs$method <- "INLA"
+    exArgs$method <- list(rep("INLA",he$n.comparators-1),rep("INLA",he$n.comparators-1))
   }
-  if (exists("method", where = exArgs)) {
-    # Sadatsafavi et al  
-    if (exArgs$method == "sal") {
+  if(class(exArgs$method)!="list"){
+    if(exArgs$method=="sad"|exArgs$method=="so"){
+      exArgs$method<-exArgs$method
+    }
+    else{
+      if(length(exArgs$method)>1){
+        exArgs$method <- list(exArgs$method,exArgs$method)
+      }
+      if(length(exArgs$method)==1){
+        exArgs$method <- list(rep(exArgs$method,he$n.comparators-1),rep(exArgs$method,he$n.comparators-1))
+      }
+    }
+  }
+  
+  if(class(exArgs$method)=="list"){
+    if(length(exArgs$method[[1]])+length(exArgs$method[[2]])!=2*(he$n.comparators-1)){
+      stop(paste("The argument 'method' must be a list of length 2 with",he$n.comparators-1,"elements each."))
+    }
+  }
+  
+  if(!exists("int.ord",where=exArgs)){
+    exArgs$int.ord <- list(rep(1,he$n.comparators-1),rep(1,he$n.comparators-1)) 
+  }
+  if(class(exArgs$int.ord)!="list"){
+    exArgs$int.ord <- list(rep(exArgs$int.ord[1],he$n.comparators-1),rep(exArgs$int.ord[2],he$n.comparators-1)) 
+  }
+  
+  prep.x<-function(he,select,k,l){
+    if(k==1){
+      x<-as.matrix(he$delta.e)[select,l]
+    }
+    if(k==2){
+      x<-as.matrix(he$delta.c)[select,l]
+    }
+    return(x)
+  }
+  
+  ###GAM Fitting
+  fit.gam <- function(parameter, inputs, x, form) {
+    tic <- proc.time()
+    N<-nrow(inputs)
+    p<-length(parameter)
+    model <- mgcv::gam(update(formula(x ~ .), 
+                              formula(paste(".~", form))), data = data.frame(inputs))
+    hat <- model$fitted
+    formula <- form
+    fitted <- matrix(hat, nrow = N, ncol = p)
+    fit <- model
+    toc <- proc.time() - tic
+    time <- toc[3]
+    names(time) = "Time to fit GAM regression (seconds)"
+    list(fitted=hat,formula = formula, fit = model,time = time)
+  }
+  
+  ###GP Fitting  
+  post.density <- function(hyperparams, parameter, x, input.matrix) {
+    dinvgamma <- function(x, alpha, beta) {
+      (beta^alpha)/gamma(alpha) * x^(-alpha - 1) * 
+        exp(-beta/x)
+    }
+    N <- length(x)
+    p <- length(parameter)
+    H <- cbind(1, input.matrix)
+    q <- ncol(H)
+    a.sigma <- 0.001
+    b.sigma <- 0.001
+    a.nu <- 0.001
+    b.nu <- 1
+    delta <- exp(hyperparams)[1:p]
+    nu <- exp(hyperparams)[p + 1]
+    A <- exp(-(as.matrix(dist(t(t(input.matrix)/delta), 
+                              upper = TRUE, diag = TRUE))^2))
+    Astar <- A + nu * diag(N)
+    T <- chol(Astar)
+    y <- backsolve(t(T),(x), upper.tri = FALSE)
+    x. <- backsolve(t(T), H, upper.tri = FALSE)
+    tHAstarinvH <- t(x.) %*% (x.)
+    betahat <- solve(tHAstarinvH) %*% t(x.) %*% y
+    residSS <- y %*% y - t(y) %*% x. %*% betahat - t(betahat) %*% 
+      t(x.) %*% y + t(betahat) %*% tHAstarinvH %*% betahat
+    prior <- prod(dnorm(log(delta), 0, sqrt(1e+05))) * 
+      dinvgamma(nu, a.nu, b.nu)
+    l <- -sum(log(diag(T))) - 1/2 * log(det(tHAstarinvH)) - 
+      (N - q + 2 * a.sigma)/2 * log(residSS/2 + b.sigma) + 
+      log(prior)
+    names(l) <- NULL
+    return(l)
+  }
+  estimate.hyperparameters <- function(x, input.matrix, parameter,n.sim) {
+    p <- length(parameter)
+    initial.values <- rep(0, p + 1)
+    repeat {
+      log.hyperparameters <- optim(initial.values, 
+                                   fn = post.density,parameter=parameter, x = x[1:n.sim], 
+                                   input.matrix = input.matrix[1:n.sim, ], 
+                                   method = "Nelder-Mead", control = list(fnscale = -1, 
+                                                                          maxit = 10000, trace = 0))$par
+      if (sum(abs(initial.values - log.hyperparameters)) < 
+          0.01) {
+        hyperparameters <- exp(log.hyperparameters)
+        break
+      }
+      initial.values <- log.hyperparameters
+    }
+    return(hyperparameters)
+  }
+  fit.gp <- function(parameter, inputs, x, n.sim) {
+    tic <- proc.time()
+    p <- length(parameter)
+    input.matrix <- as.matrix(input[, parameter, drop = FALSE])
+    colmin <- apply(input.matrix, 2, min)
+    colmax <- apply(input.matrix, 2, max)
+    colrange <- colmax - colmin
+    input.matrix <- sweep(input.matrix, 2, colmin, "-")
+    input.matrix <- sweep(input.matrix, 2, colrange, 
+                          "/")
+    N <- nrow(input.matrix)
+    H <- cbind(1, input.matrix)
+    q <- ncol(H)
+    hyperparameters <- estimate.hyperparameters(x = x,input = input.matrix, parameter = parameter, n.sim = n.sim)
+    delta.hat <- hyperparameters[1:p]
+    nu.hat <- hyperparameters[p + 1]
+    A <- exp(-(as.matrix(dist(t(t(input.matrix)/delta.hat), 
+                              upper = TRUE, diag = TRUE))^2))
+    Astar <- A + nu.hat * diag(N)
+    Astarinv <- chol2inv(chol(Astar))
+    rm(Astar)
+    gc()
+    AstarinvY <- Astarinv %*% x
+    tHAstarinv <- t(H) %*% Astarinv
+    tHAHinv <- solve(tHAstarinv %*% H)
+    betahat <- tHAHinv %*% (tHAstarinv %*% x)
+    Hbetahat <- H %*% betahat
+    resid <- x - Hbetahat
+    fitted<- Hbetahat + A %*% (Astarinv %*% 
+                                 resid)
+    AAstarinvH <- A %*% t(tHAstarinv)
+    sigmasqhat <- as.numeric(t(resid) %*% Astarinv %*% 
+                               resid)/(N - q - 2)
+    rm(A, Astarinv, AstarinvY, tHAstarinv, tHAHinv, 
+       Hbetahat, resid, sigmasqhat)
+    gc()
+    toc <- proc.time() - tic
+    time <- toc[3]
+    names(time) = "Time to fit GP regression (seconds)"
+    list(fitted = fitted,time = time, fit=NULL,formula = NULL)
+  }
+  
+  ###INLA Fitting
+  make.proj <- function(parameter,inputs, x,k,l) {
+    tic <- proc.time()
+    scale<-8/(range(x)[2]-range(x)[1])
+    scale.x<-scale*x
+    bx<-ldr::bf(scale.x,case="poly",2)
+    fit1<-ldr::pfc(scale(inputs[,parameter]),scale.x,bx,structure="iso")
+    fit2<-ldr::pfc(scale(inputs[,parameter]),scale.x,bx,structure="aniso")
+    fit3<-ldr::pfc(scale(inputs[,parameter]),scale.x,bx,structure="unstr")
+    struc<-c("iso","aniso","unstr")[which(c(fit1$aic,fit2$aic,fit3$aic)==min(fit1$aic,fit2$aic,fit3$aic))]
+    AIC.deg<-array()
+    for(i in 2:7){
+      bx<-ldr::bf(scale.x,case="poly",i)
+      fit<-ldr::pfc(scale(inputs[,parameter]),scale.x,bx,structure=struc)
+      AIC.deg[i]<-fit$aic}
+    deg<-which(AIC.deg==min(AIC.deg,na.rm=T))
+    d<-min(dim(inputs[,parameter])[2],deg)
+    by<-ldr::bf(scale.x,case="poly",deg)
+    comp.d<-ldr::ldr(scale(inputs[,parameter]),scale.x,bx,structure=struc,model="pfc",numdir=d,numdir.test=T)
+    dim.d<-which(comp.d$aic==min(comp.d$aic))-1
+    comp<-ldr::ldr(scale(inputs[,parameter]),scale.x,bx,structure=struc,model="pfc",numdir=2)
+    toc <- proc.time() - tic
+    time <- toc[3]
+    if(dim.d>2){
+      cur<-c("effects","costs")
+      warning(paste("The dimension of the sufficient reduction for the incremental",cur[k],", column",l,", is",dim.d,".
+                    Dimensions greater than 2 imply that the EVPPI approximation using INLA may be inaccurate.
+                    Full residual checking using diag.evppi is required."))}
+    names(time) = "Time to fit find projections (seconds)"
+    list(data = comp$R, time = time,dim=dim.d)
+    }
+  plot.mesh <- function(mesh, data, plot) {
+    if (plot == TRUE || plot == T) {
+      cat("\n")
+      choice <- select.list(c("yes", "no"), title = "Would you like to save the graph?", 
+                            graphics = F)
+      if (choice == "yes") {
+        exts <- c("jpeg", "pdf", "bmp", "png", "tiff")
+        ext <- select.list(exts, title = "Please select file extension", 
+                           graphics = F)
+        name <- paste0(getwd(), "/mesh.", ext)
+        txt <- paste0(ext, "('", name, "')")
+        eval(parse(text = txt))
+        plot(mesh)
+        points(data, col = "blue", pch = 19, cex = 0.8)
+        dev.off()
+        txt <- paste0("Graph saved as: ", name)
+        cat(txt)
+        cat("\n")
+      }
+      cat("\n")
+      plot(mesh)
+      points(data, col = "blue", pch = 19, cex = 0.8)
+    }
+  }
+  make.mesh <- function(data, convex.inner, convex.outer, 
+                        cutoff,max.edge) {
+    tic <- proc.time()
+    inner <- suppressMessages({
+      INLA::inla.nonconvex.hull(data, convex = convex.inner)
+    })
+    outer <- INLA::inla.nonconvex.hull(data, convex = convex.outer)
+    mesh <- INLA::inla.mesh.2d(
+      loc=data, boundary=list(inner,outer),
+      max.edge=c(max.edge,max.edge),cutoff=c(cutoff))  
+    toc <- proc.time() - tic
+    time <- toc[3]
+    names(time) = "Time to fit determine the mesh (seconds)"
+    list(mesh = mesh, pts = data, time = time)
+  }
+  fit.inla <- function(parameter, inputs, x, mesh, 
+                       data.scale, int.ord, convex.inner, convex.outer, 
+                       cutoff, max.edge,h.value,family) {
+    tic <- proc.time()
+    inputs.scale <- scale(inputs, apply(inputs, 2, mean), apply(inputs, 2, sd))
+    I <- x
+    scale <- 6/(range(I)[2] - range(I)[1])
+    A <- INLA::inla.spde.make.A(mesh = mesh, loc = data.scale, silent = 2L)
+    spde <- INLA::inla.spde2.matern(mesh = mesh, alpha = 2)
+    stk.real <- INLA::inla.stack(tag = "est", data = list(y=I *scale), A = list(A, 1), 
+                                 effects = list(s = 1:spde$n.spde,
+                                                data.frame(b0 = 1, x = cbind(data.scale, inputs.scale))))
+    data <- INLA::inla.stack.data(stk.real)
+    ctr.pred <- INLA::inla.stack.A(stk.real)
+    inp <- names(stk.real$effects$data)[parameter + 4]
+    form <- paste(inp, "+", sep = "", collapse = "")
+    formula <- paste("y~0+(", form, "+0)+b0+f(s,model=spde)", 
+                     sep = "", collapse = "")
+    if (int.ord[1] > 1) {
+      formula <- paste("y~0+(", form, "+0)^", int.ord[1], 
+                       "+b0+f(s,model=spde)", sep = "", collapse = "")
+    }
+    Result <- suppressMessages({
+      INLA::inla(as.formula(formula), data = data, 
+                 family = family, control.predictor = list(A = ctr.pred,link = 1), 
+                 control.inla = list(h = h.value), 
+                 control.compute = list(config = T))
+    })
+    fitted <- Result$summary.linear.predictor[1:length(x),"mean"]/scale
+    fit <- Result
+    toc <- proc.time() - tic
+    time <- toc[3]
+    names(time) = "Time to fit INLA/SPDE (seconds)"
+    list(fitted = fitted, model = fit, time = time, formula = formula, 
+         mesh = list(mesh = mesh, pts = data.scale))
+  }
+  
+  compute.evppi <- function(he,fit.full) {
+    EVPPI <- array()
+    tic <- proc.time()
+    for (i in 1:length(he$k)) {
+      NB.k <- -(he$k[i]*fit.full[[1]]-fit.full[[2]])
+      EVPPI[i] <- (mean(apply(NB.k, 1, max, na.rm = T)) - 
+                     max(apply(NB.k, 2, mean, na.rm = T)))
+    }
+    toc <- proc.time() - tic
+    time <- toc[3]
+    names(time) = "Time to compute the EVPPI (in seconds)"
+    list(EVPPI = EVPPI, time = time)
+  }
+  
+  prepare.output <- function(parameters, inputs) {
+    if (length(parameter) == 1) {
+      if (class(parameter) == "numeric") {
+        name = colnames(inputs)[parameter]
+      }
+      else {
+        name = parameter
+      }
+    }
+    else {
+      if (class(parameter) == "numeric") {
+        n.param <- length(parameter)
+        end <- colnames(input)[parameter[n.param]]
+        name.mid <- paste(colnames(inputs)[parameter[1:n.param - 
+                                                       1]], ", ", sep = "", collapse = " ")
+        name <- paste(name.mid, "and ", end, sep = "", 
+                      collapse = " ")
+      }
+      else {
+        n.param <- length(parameter)
+        end <- parameter[n.param]
+        name.mid <- paste(parameter[1:n.param - 1], 
+                          ", ", sep = "", collapse = " ")
+        name <- paste(name.mid, "and ", end, sep = "", 
+                      collapse = " ")
+      }
+    }
+    return(name)
+  }
+  
+  if(class(exArgs$method)!="list"){
+    if (exArgs$method == "sal"||exArgs$method=="sad") {
       method = "Sadatsafavi et al"
       n.blocks = NULL
       if (!exists("n.seps", where = exArgs)) {
@@ -2493,28 +2799,27 @@ evppi.default<-function (parameter, input, he, N = NA, plot = F, residuals = T, 
         n.seps <- exArgs$n.seps
       }
       if (length(parameters) == 1) {
-        # Needs to modify a vector "param" with the values from the requested parameter
         d <- he$n.comparators
         n <- he$n.sim
         w <- parameters
-        param <- inputs[, w]  # vector of simulations for the relevant parameter
+        param <- inputs[, w]
         o <- order(param)
-        param <- param[o]     # re-order the parameter vector
+        param <- param[o]
         nSegs <- matrix(1, d, d)
         nSegs[1, 2] <- n.seps
         nSegs[2, 1] <- n.seps
         res <- segPoints <- numeric()
         for (k in 1:length(he$k)) {
-          nbs <- he$U[, k, ]  # this is a n.sims x n.interventions matrix 
-                              # with the NB for each value of k
-          nbs <- nbs[o, ]     # re-arrange according to the parameter order
+          nbs <- he$U[, k, ]
+          nbs <- nbs[o, ]
           for (i in 1:(d - 1)) {
             for (j in (i + 1):d) {
               cm <- cumsum(nbs[, i] - nbs[, j])/n
               if (nSegs[i, j] == 1) {
-                l <- which.min(cm)  # lower bound
-                u <- which.max(cm)  # upper bound
-                if (cm[u] - max(cm[1], cm[n]) > min(cm[1],cm[n]) - cm[l]) {
+                l <- which.min(cm)
+                u <- which.max(cm)
+                if (cm[u] - max(cm[1], cm[n]) > min(cm[1], 
+                                                    cm[n]) - cm[l]) {
                   segPoint <- u
                 }
                 else {
@@ -2693,18 +2998,9 @@ evppi.default<-function (parameter, input, he, N = NA, plot = F, residuals = T, 
         names(res) <- parameters
       }
       
-      #Creates names for plot.evppi function
-      if (class(parameter) == "numeric") {
-        name = colnames(input)[parameter]
-      }
-      else {
-        name = parameter
-      }
-      res <- list(evppi = res, index = parameters, parameters = name, 
+      res <- list(evppi = res, index = parameters, parameters = parameters, 
                   k = he$k, evi = he$evi, method = method)
     }
-    
-    ## Strong and Oakley (univariate)
     if (exArgs$method == "so") {
       method = "Strong & Oakley (univariate)"
       n.seps = NULL
@@ -2714,15 +3010,13 @@ evppi.default<-function (parameter, input, he, N = NA, plot = F, residuals = T, 
       else {
         n.blocks <- exArgs$n.blocks
       }
-      S <- he$n.sim                 # number of samples
-      J <- S/exArgs$n.blocks        # constrains the parameters J,K to have product
-                                    # equal to the number of simulations
-      check <- S%%exArgs$n.blocks   # checks that Jxn.blocks = S with no remainder
+      S <- he$n.sim
+      J <- S/exArgs$n.blocks
+      check <- S%%exArgs$n.blocks
       if (check > 0) {
         stop("number of simulations/number of blocks must be an integer. Please select a different value for n.blocks \n")
       }
-      D <- he$n.comparators         # number of decision options
-      # Checks how many parameters have been specified
+      D <- he$n.comparators
       if (length(parameter) == 1) {
         sort.order <- order(inputs[, parameters])
         sort.U <- array(NA, dim(he$U))
@@ -2738,7 +3032,6 @@ evppi.default<-function (parameter, input, he, N = NA, plot = F, residuals = T, 
                                                   ], 2, mean))
         }
       }
-      
       if (length(parameter) > 1) {
         res <- list()
         for (j in 1:length(parameter)) {
@@ -2760,740 +3053,185 @@ evppi.default<-function (parameter, input, he, N = NA, plot = F, residuals = T, 
         names(res) <- parameters
       }
       
-      if (class(parameter) == "numeric") {
-        name = colnames(input)[parameter]
-      }
-      else {
-        name = parameter
-      }
-      res <- list(evppi = res, index = parameters, parameters = name, 
+      res <- list(evppi = res, index = parameters, parameters = parameters, 
                   k = he$k, evi = he$evi, method = method)
     }
+  }
+  if(class(exArgs$method)=="list"){
+    time<-list()
+    time[[1]]<-list()
+    time[[2]]<-list()
     
-    if(exArgs$method == "INLA" || exArgs$method == "GAM"||exArgs$method == "gam"||exArgs$method == "g"||exArgs$method == "G"
-       || exArgs$method == "GP"||exArgs$method == "gp"){
-      
-      ### Functions to Compute the EVPPI using GP regression-like methods #########################
-      
-      ## 1. Fit model using GAM
-      fit.gam <- function(parameter, input, x, select, formula) {
-        # Runs GAM regression
-        # parameter = A vector of parameters for which the EVPPI should be calculated. 
-        #             This can be given as a string (or vector of strings) of names or 
-        #             a numeric vector, corresponding to the column numbers of important parameters.
-        # input = A matrix containing the simulations for all the parameters monitored by the call to 
-        #         JAGS or BUGS. The matrix should have column names matching the names of the parameters 
-        #         and the values in the vector parameter should match at least one of those values.
-        # x = a BCEA object with the PSA runs and relevant information on the comparison to be made
-        # N = The number of PSA simulations used to calculate the EVPPI. The default uses all the 
-        #     available samples.
-        ### optional argument are 
-        # formula: a string specifying the form of the non parametric regression in terms of the
-        #          parameters involved. "Main" effects are constructed with the format s(par),
-        #          where par is one of the parameters for the model being considered. Also, it
-        #          is possible to consider "interaction" terms, to account for correlation 
-        #          among parameters. This is done using the notation te(par1,par2), which 
-        #          defines the tensor function between par1 and par2. The default is using the 
-        #          tensor and cubic splines, which speed up the computation
-        
-        tic <- proc.time()
-        d <- x$n.comparisons
-        N <- min(x$n.sim, N, na.rm = T)
-        if (N == x$n.sim) {
-          select <- 1:x$n.sim
-        }
-        else {
-          select <- sample(1:x$n.sim, size = N, replace = F)
-        }
-        inp <- names(inputs)[parameters]
-        if (d == 1) {
-          f.e <- update(formula(x$delta.e[select] ~ .), 
-                        formula(paste(".~", form)))
-          f.c <- update(formula(x$delta.c[select] ~ .), 
-                        formula(paste(".~", form)))
-          model.e <- mgcv::gam(f.e, data = data.frame(inputs)[select, 
-                                                              ])
-          model.c <- mgcv::gam(f.c, data = data.frame(inputs)[select, 
-                                                              ])
-          e.hat <- model.e$fitted
-          c.hat <- model.c$fitted
-        }
-        else {
-          e.hat <- c.hat <- matrix(NA, N, d)
-          model.e <- model.c <- list()
-          for (i in 1:d) {
-            f.e <- update(formula(x$delta.e[select, i] ~ 
-                                    .), formula(paste(".~", form)))
-            f.c <- update(formula(x$delta.c[select, i] ~ 
-                                    .), formula(paste(".~", form)))
-            model.e[[i]] <- mgcv::gam(f.e, data = data.frame(inputs)[select, 
-                                                                     ])
-            model.c[[i]] <- mgcv::gam(f.c, data = data.frame(inputs)[select, 
-                                                                     ])
-            e.hat[, i] <- model.e[[i]]$fitted
-            c.hat[, i] <- model.c[[i]]$fitted
+    fit.full<-list()
+    fit.full[[1]]<-matrix(data=0,nrow=length(exArgs$select),ncol=he$n.comparators)
+    fit.full[[2]]<-matrix(data=0,nrow=length(exArgs$select),ncol=he$n.comparators)
+    for(k in 1:2){
+      for(l in 1:he$n.comparisons){
+        x<-prep.x(he=he,select=exArgs$select,k=k,l=l)
+        method<-exArgs$method[[k]][l]
+        if (method == "GAM" || method == "gam" || 
+            method == "G" || method == "g") {
+          method <- "GAM"
+          mesh <- robust <- NULL
+          if (!isTRUE(requireNamespace("mgcv", quietly = TRUE))) {
+            stop("You need to install the package 'mgcv'. Please run in your R terminal:\n install.packages('mgcv')")
           }
-        }
-        formula <- form
-        fitted.costs <- matrix(c.hat, nrow = N, ncol = d)
-        fitted.effects <- matrix(e.hat, nrow = N, ncol = d)
-        fit.c <- model.c
-        fit.e <- model.e
-        toc <- proc.time() - tic
-        time <- toc[3]
-        names(time) = "Time to fit GAM regression (seconds)"
-        
-        # defines output of the function
-        list(fitted.costs = fitted.costs, fitted.effects = fitted.effects, 
-             formula = formula, fit.c = fit.c, fit.e = fit.e, 
-             time = time)
-      }
-      
-      
-      post.density <- function(hyperparams, obj, input, parameter) {
-        ## 2. Fit model using GP Regression
-        ## Code by Mark Strong
-        ## This function computes the log posterior density of the GP hyperparameters
-        
-        dinvgamma <- function(x, alpha, beta) {
-          (beta^alpha)/gamma(alpha) * x^(-alpha - 1) * 
-            exp(-beta/x)
-        }
-        if (class(parameter[1]) == "character") {
-          parameters <- array()
-          for (i in 1:length(parameter)) {
-            parameters[i] <- which(colnames(input) == parameter[i])
-          }
-        }
-        else {
-          parameters = parameter
-          parameter = colnames(input)[parameters]
-        }
-        input.matrix <- as.matrix(input[, parameters, drop = FALSE])
-        colmin <- apply(input.matrix, 2, min)
-        colmax <- apply(input.matrix, 2, max)
-        colrange <- colmax - colmin
-        input.matrix <- sweep(input.matrix, 2, colmin, "-")
-        input.matrix <- sweep(input.matrix, 2, colrange, 
-                              "/")
-        N <- nrow(input.matrix)
-        p <- ncol(input.matrix)
-        H <- cbind(1, input.matrix)
-        q <- ncol(H)
-        a.sigma <- 0.001    ##  hyperparameters for IG prior for sigma^2
-        b.sigma <- 0.001    ##  hyperparameters for IG prior for nu
-        a.nu <- 0.001
-        b.nu <- 1
-        delta <- exp(hyperparams)[1:p]
-        nu <- exp(hyperparams)[p + 1]
-        A <- exp(-(as.matrix(dist(t(t(input.matrix)/delta), 
-                                  upper = TRUE, diag = TRUE))^2))
-        Astar <- A + nu * diag(N)
-        T <- chol(Astar)
-        y <- backsolve(t(T), obj, upper.tri = FALSE)
-        x <- backsolve(t(T), H, upper.tri = FALSE)
-        tHAstarinvH <- t(x) %*% (x)
-        betahat <- solve(tHAstarinvH) %*% t(x) %*% y
-        residSS <- y %*% y - t(y) %*% x %*% betahat - t(betahat) %*% 
-          t(x) %*% y + t(betahat) %*% tHAstarinvH %*% betahat
-        prior <- prod(dnorm(log(delta), 0, sqrt(100000))) * 
-          dinvgamma(nu, a.nu, b.nu)
-        l <- -sum(log(diag(T))) - 1/2 * log(det(tHAstarinvH)) - 
-          (N - q + 2 * a.sigma)/2 * log(residSS/2 + b.sigma) + 
-          log(prior)
-        names(l) <- NULL
-        return(l)
-      }
-      
-      ## This function estimates the GP hyperparameters numerically using optim
-      ## m is the number of PSA samples used to estimate the hyperparameters
-      estimate.hyperparameters <- function(obj, input, parameter,n.sim) {
-        # obj = either Delta.e or Delta.c as called by the rest of the function
-        # input = the matrix (or data frame) with the PSA runs
-        # parameter = a (possibly numeric) vector with the parameters of interest
-        # n.sim = number of simulations to be performed to estimate the hyperparameters
-        
-        p <- length(parameter)
-        D <- he$n.comparators
-        hyperparameters <- vector("list", D)
-        hyperparameters[[1]] <- NA
-        for (i in 2:D) {
-          initial.values <- rep(0, p + 1)
-          repeat {
-            log.hyperparameters <- optim(initial.values, 
-                                         fn = post.density, obj = obj[1:n.sim, i], 
-                                         input = input[1:n.sim, ], parameter = parameter, 
-                                         method = "Nelder-Mead", control = list(fnscale = -1, 
-                                                                                maxit = 10000, trace = 0))$par
-            if (sum(abs(initial.values - log.hyperparameters)) < 
-                0.01) {
-              hyperparameters[[i]] <- exp(log.hyperparameters)
-              break
-            }
-            initial.values <- log.hyperparameters
-          }
-        }
-        return(hyperparameters)
-      }
-      
-      fit.gp <- function(parameter, input, x, select, n.sim) {
-        # Runs GP regression
-        # parameter = A vector of parameters for which the EVPPI should be calculated. 
-        #             This can be given as a string (or vector of strings) of names or 
-        #             a numeric vector, corresponding to the column numbers of important parameters.
-        # input = A matrix containing the simulations for all the parameters monitored by the call to 
-        #         JAGS or BUGS. The matrix should have column names matching the names of the parameters 
-        #         and the values in the vector parameter should match at least one of those values.
-        # x = a BCEA object with the PSA runs and relevant information on the comparison to be made
-        # select = The number of PSA simulations used to calculate the EVPPI. The default uses all the 
-        #     available samples.
-        # n.sim = number of simulations to compute the hyperparameters
-        ### optional argument are 
-        # formula: a string specifying the form of the non parametric regression in terms of the
-        #          parameters involved. "Main" effects are constructed with the format s(par),
-        #          where par is one of the parameters for the model being considered. Also, it
-        #          is possible to consider "interaction" terms, to account for correlation 
-        #          among parameters. This is done using the notation te(par1,par2), which 
-        #          defines the tensor function between par1 and par2. The default is using the 
-        #          tensor and cubic splines, which speed up the computation
-        
-        tic <- proc.time()
-        if (!is.null(dim(x$e))) {
-          de <- x$e[select, ] - x$e[select, 1]
-          dc <- x$c[select, ] - x$c[select, 1]
-        }
-        else {
-          de <- cbind(0, x$e[select])
-          dc <- cbind(0, x$c[select])
-        }
-        p <- length(parameter)
-        D <- x$n.comparators
-        input.matrix <- as.matrix(input[select, parameters, 
-                                        drop = FALSE])
-        colmin <- apply(input.matrix, 2, min)
-        colmax <- apply(input.matrix, 2, max)
-        colrange <- colmax - colmin
-        input.matrix <- sweep(input.matrix, 2, colmin, "-")
-        input.matrix <- sweep(input.matrix, 2, colrange, 
-                              "/")
-        H <- cbind(1, input.matrix)
-        q <- ncol(H)
-        V.e <- V.c <- g.hat.c <- g.hat.e <- vector("list", 
-                                                   D)
-        g.hat.e[[1]] <- g.hat.c[[1]] <- rep(0, N)
-        for (d in 2:D) {
-          hyperparameters <- estimate.hyperparameters(obj = de, 
-                                                      input = input, parameter = parameter, n.sim = n.sim)
-          delta.hat <- hyperparameters[[d]][1:p]
-          nu.hat <- hyperparameters[[d]][p + 1]
-          A <- exp(-(as.matrix(dist(t(t(input.matrix)/delta.hat), 
-                                    upper = TRUE, diag = TRUE))^2))
-          Astar <- A + nu.hat * diag(N)
-          Astarinv <- chol2inv(chol(Astar))
-          rm(Astar)
-          gc()
-          AstarinvY <- Astarinv %*% de[, d]
-          tHAstarinv <- t(H) %*% Astarinv
-          tHAHinv <- solve(tHAstarinv %*% H)
-          betahat <- tHAHinv %*% (tHAstarinv %*% de[, d])
-          Hbetahat <- H %*% betahat
-          resid <- de[, d] - Hbetahat
-          g.hat.e[[d]] <- Hbetahat + A %*% (Astarinv %*% 
-                                              resid)
-          AAstarinvH <- A %*% t(tHAstarinv)
-          sigmasqhat <- as.numeric(t(resid) %*% Astarinv %*% 
-                                     resid)/(N - q - 2)
-          V.e[[d]] <- sigmasqhat * (nu.hat * diag(N) - 
-                                      nu.hat^2 * Astarinv + (H - AAstarinvH) %*% 
-                                      (tHAHinv %*% t(H - AAstarinvH)))
-          rm(A, Astarinv, AstarinvY, tHAstarinv, tHAHinv, 
-             Hbetahat, resid, sigmasqhat)
-          gc()
-          hyperparameters <- estimate.hyperparameters(obj = dc, 
-                                                      input = input, parameter = parameter, n.sim = n.sim)
-          delta.hat <- hyperparameters[[d]][1:p]
-          nu.hat <- hyperparameters[[d]][p + 1]
-          A <- exp(-(as.matrix(dist(t(t(input.matrix)/delta.hat), 
-                                    upper = TRUE, diag = TRUE))^2))
-          Astar <- A + nu.hat * diag(N)
-          Astarinv <- chol2inv(chol(Astar))
-          rm(Astar)
-          gc()
-          AstarinvY <- Astarinv %*% dc[, d]
-          tHAstarinv <- t(H) %*% Astarinv
-          tHAHinv <- solve(tHAstarinv %*% H)
-          betahat <- tHAHinv %*% (tHAstarinv %*% dc[, d])
-          Hbetahat <- H %*% betahat
-          resid <- dc[, d] - Hbetahat
-          g.hat.c[[d]] <- Hbetahat + A %*% (Astarinv %*% 
-                                              resid)
-          AAstarinvH <- A %*% t(tHAstarinv)
-          sigmasqhat <- as.numeric(t(resid) %*% Astarinv %*% 
-                                     resid)/(N - q - 2)
-          V.c[[d]] <- sigmasqhat * (nu.hat * diag(N) - 
-                                      nu.hat^2 * Astarinv + (H - AAstarinvH) %*% 
-                                      (tHAHinv %*% t(H - AAstarinvH)))
-          rm(A, Astarinv, AstarinvY, tHAstarinv, tHAHinv, 
-             Hbetahat, resid, sigmasqhat)
-          gc()
-        }
-        g.hat.e <- matrix(unlist(g.hat.e), nrow = N, ncol = D)
-        g.hat.c <- matrix(unlist(g.hat.c), nrow = N, ncol = D)
-        toc <- proc.time() - tic
-        time <- toc[3]
-        names(time) = "Time to fit GP regression (seconds)"
-        fitted.costs = matrix(g.hat.c[, 2:D], nrow = N, ncol = (D - 1))
-        fitted.effects = matrix(g.hat.e[, 2:D], nrow = N, ncol = (D - 1))
-        
-        # defines output of the function
-        list(fitted.costs = fitted.costs, fitted.effects = fitted.effects, 
-             time = time, formula = NULL)
-      }
-      
-      ## 3. Fit model using INLA
-      make.proj <- function(inputs, parameters, select) {
-        #Set up the projection from P dimesional space to 2 dimensions
-        
-        tic <- proc.time()
-        comp1 <- prcomp(inputs[select, parameters])
-        Datum <- inputs[select, parameters]
-        Data <- cbind(as.matrix(Datum) %*% as.matrix(comp1$rotation[,2]), 
-                      as.matrix(Datum) %*% as.matrix(comp1$rotation[,1]))
-        Data.Scale <- cbind((Data[, 1] - mean(Data[, 1]))/sd(Data[,1]), (Data[, 2] - mean(Data[, 2]))/sd(Data[,2]))
-        toc <- proc.time() - tic
-        time <- toc[3]
-        names(time) = "Time to fit find projections (seconds)"
-        list(Data.Scale = Data.Scale, time = time)
-      }
-      
-      #Plotting shows the mesh
-      plot.mesh <- function(mesh, data, plot) {
-        if (plot == TRUE || plot == T) {
-          cat("\n")
-          choice <- select.list(c("yes", "no"), title = "Would you like to save the graph?", 
-                                graphics = F)
-          if (choice == "yes") {
-            exts <- c("jpeg", "pdf", "bmp", "png", "tiff")
-            ext <- select.list(exts, title = "Please select file extension", 
-                               graphics = F)
-            name <- paste0(getwd(), "/mesh.", ext)
-            txt <- paste0(ext, "('", name, "')")
-            eval(parse(text = txt))
-            plot(mesh)
-            points(data, col = "blue", pch = 19, cex = 0.8)
-            dev.off()
-            txt <- paste0("Graph saved as: ", name)
-            cat(txt)
+          if (isTRUE(requireNamespace("mgcv", quietly = TRUE))) {
             cat("\n")
-          }
-          cat("\n")
-          plot(mesh)
-          points(data, col = "blue", pch = 19, cex = 0.8)
-        }
-      }
-      
-      # Makes the mesh
-      make.mesh <- function(data, convex.inner, convex.outer,cutoff) {
-        tic <- proc.time()
-        inner <- suppressMessages({
-          INLA::inla.nonconvex.hull(data, convex = convex.inner)
-        })
-        outer <- INLA::inla.nonconvex.hull(data, convex = convex.outer)
-        mesh.tmp <- INLA::inla.mesh.2d(boundary = list(inner), 
-                                       max.edge = c(0.5), cutoff = cutoff/2)
-        mesh <- INLA::inla.mesh.2d(loc = mesh.tmp$loc, boundary = list(INLA::inla.mesh.boundary(mesh.tmp), 
-                                                                       outer), max.edge = c(1.2, 1.2 * 2), cutoff = cutoff)
-        toc <- proc.time() - tic
-        time <- toc[3]
-        names(time) = "Time to fit determine the mesh (seconds)"
-        list(mesh = mesh, pts = data, time = time)
-      }
-      
-      # Fits INLA
-      fit.inla <- function(parameters, inputs, x, select, mesh, 
-                           data.scale, int.ord, convex.inner, convex.outer, 
-                           cutoff, h.value) {
-        
-        tic <- proc.time()
-        inputs.Scale <- scale(inputs[select,], apply(inputs[select,], 2, mean), 
-                              apply(inputs[select, ], 2, sd))
-        d <- x$n.comparators
-        e.I <- fit.e <- list()
-        e.scale <- array()
-        fitted.effects <- matrix(NA, nrow = length(select),ncol = (d - 1))
-        c.I <- fit.c <- list()
-        c.scale <- array()
-        fitted.costs <- matrix(NA, nrow = length(select),ncol = (d - 1))
-        for (i in 1:(d - 1)) {
-          g <- x$comp[i]
-          
-          ## Run INLA/SPDE for effects
-          e.I[[i]] <- as.matrix(x$delta.e)[select, i]
-          e.scale[i] <- 6/(range(e.I[[i]])[2] - range(e.I[[i]])[1])
-          A <- INLA::inla.spde.make.A(mesh = mesh, loc = data.scale, silent = 2L)
-          #Sets up an spde object to be used in the INLA call
-          spde <- INLA::inla.spde2.matern(mesh = mesh,alpha = 2)
-          #Data for the SPDE
-          stk.real <- INLA::inla.stack(tag = "est", # tag
-                                       data = list(y = e.I[[i]] *e.scale[i]), # response
-                                       A = list(A, 1),  # two-projector matrix
-                                       effects = list(  # two elements
-                                         s = 1:spde$n.spde,
-                                         data.frame(b0 = 1,x = cbind(data.scale,inputs.Scale))))
-          
-          #Using INLA to find the fitted values 
-          data <- INLA::inla.stack.data(stk.real)
-          ctr.pred <- INLA::inla.stack.A(stk.real)
-          
-          # Creates the formula
-          inp <- names(stk.real$effects$data)[parameters + 4]
-          form <- paste(inp, "+", sep = "", collapse = "")
-          formula <- paste("y~0+(", form, "+0)+b0+f(s,model=spde)", 
-                           sep = "", collapse = "")
-          if (int.ord[1] > 1) {
-            formula <- paste("y~0+(", form, "+0)^", int.ord[1], 
-                             "+b0+f(s,model=spde)", sep = "", collapse = "")
-          }
-          
-          # NB Matrix will throw a NOTE --- but suppressMessages will avoid this
-          # NB2: Should we compute the DIC so that we could assess what model is the better??
-          Result <- suppressMessages({
-            INLA::inla(as.formula(formula), data = data, 
-                       family = family, control.predictor = list(A = ctr.pred, 
-                                                                 link = 1), control.inla = list(h = h.value), 
-                       control.compute = list(config = T))
-          })
-          rescaled <- Result$summary.linear.predictor[1:length(select), 
-                                                      "mean"]/e.scale[i]
-          fitted.effects[, i] <- rescaled
-          fit.e[[i]] <- Result
-          
-          ## Run INLA/SPDE for costs
-          c.I[[i]] <- as.matrix(x$delta.c)[select, i]
-          c.scale[i] <- 6/(range(c.I[[i]])[2] - range(c.I[[i]])[1])
-          A <- INLA::inla.spde.make.A(mesh = mesh, loc = data.scale, silent = 2L)
-          #Sets up an spde object to be used in the INLA call
-          spde <- INLA::inla.spde2.matern(mesh = mesh, 
-                                          alpha = 2)
-          stk.real <- INLA::inla.stack(tag = "est", 
-                                       data = list(y = c.I[[i]] * c.scale[i]), 
-                                       A = list(A, 1), 
-                                       effects = list(s = 1:spde$n.spde, 
-                                                      data.frame(b0 = 1, x = cbind(data.scale, inputs.Scale))))
-          
-          data <- INLA::inla.stack.data(stk.real)
-          ctr.pred <- INLA::inla.stack.A(stk.real)
-          
-          # Creates the formula
-          formula <- paste("y~0+(", form, "+0)+b0+f(s,model=spde)", 
-                           sep = "", collapse = "")
-          if (int.ord[2] > 1) {
-            formula <- paste("y~0+(", form, "+0)^", int.ord[2], 
-                             "+b0+f(s,model=spde)", sep = "", collapse = "")
-          }
-          Result <- suppressMessages({
-            INLA::inla(as.formula(formula), data = data, 
-                       family = family, control.predictor = list(A = ctr.pred, 
-                                                                 link = 1), control.inla = list(h = h.value), 
-                       control.compute = list(config = T))
-          })
-          rescaled <- Result$summary.linear.predictor[1:length(select), 
-                                                      "mean"]/c.scale[i]
-          fitted.costs[, i] <- rescaled
-          fit.c[[i]] <- Result
-        }
-        toc <- proc.time() - tic
-        time <- toc[3]
-        names(time) = "Time to fit INLA/SPDE (seconds)"
-        
-        list(fitted.costs = fitted.costs, fitted.effects = fitted.effects, 
-             fit.c = fit.c, fit.e = fit.e, time = time, formula = formula, 
-             mesh = list(mesh = mesh, pts = data.scale))
-      }
-      
-      ## 4. Compute the EVPPI
-      compute.evppi <- function(x, fit, method) {
-        # x = bcea object
-        # fit = the result of the model fitting routine
-        # method = a string specifying the method used to fit the model
-        
-        EVPPI <- array()
-        tic <- proc.time()
-        for (i in 1:length(he$k)) {
-          if (method == "GP") {
-            NB.k.mid <- -(x$k[i] * fit$fitted.effects - 
-                            fit$fitted.costs)
-            NB.k <- cbind(NB.k.mid, rep(0, N))
-            EVPPI[i] <- (mean(apply(NB.k, 1, max, na.rm = T)) - 
-                           max(apply(NB.k, 2, mean, na.rm = T)))
-          }
-          else {
-            NB.k.mid <- -(x$k[i] * fit$fitted.effects - 
-                            fit$fitted.costs)
-            NB.k <- cbind(NB.k.mid, rep(0, N))
-            EVPPI[i] <- (mean(apply(NB.k, 1, max, na.rm = T)) - 
-                           max(apply(NB.k, 2, mean, na.rm = T)))
-          }
-        }
-        toc <- proc.time() - tic
-        time <- toc[3]
-        names(time) = "Time to compute the EVPPI (in seconds)"
-        # Outputs of the function
-        list(EVPPI = EVPPI, time = time)
-      }
-      
-      ## 5. Creates names for the evppi.plot function
-      #Creates names for plot.evppi function
-      prepare.output <- function(parameter, input) {
-        if (length(parameter) == 1) {
-          if (class(parameter) == "numeric") {
-            name = colnames(input)[parameter]
-          }
-          else {
-            name = parameter
-          }
-        }
-        else {
-          if (class(parameter) == "numeric") {
-            n.param <- length(parameter)
-            end <- colnames(input)[parameter[n.param]]
-            name.mid <- paste(colnames(input)[parameter[1:n.param - 
-                                                          1]], ", ", sep = "", collapse = " ")
-            name <- paste(name.mid, "and ", end, sep = "", 
-                          collapse = " ")
-          }
-          else {
-            n.param <- length(parameter)
-            end <- parameter[n.param]
-            name.mid <- paste(parameter[1:n.param - 1], 
-                              ", ", sep = "", collapse = " ")
-            name <- paste(name.mid, "and ", end, sep = "", 
-                          collapse = " ")
-          }
-        }
-        return(name)
-      }
-      ###############################################################################
-      
-      ## GAM regression
-      if (exArgs$method == "GAM" || exArgs$method == "gam" || 
-          exArgs$method == "G" || exArgs$method == "g") {
-        method <- "GAM"
-        mesh <- robust <- NULL
-        
-        # If mgcv is not installed, then asks for it
-        if (!isTRUE(requireNamespace("mgcv", quietly = TRUE))) {
-          stop("You need to install the package 'mgcv'. Please run in your R terminal:\n install.packages('mgcv')")
-        }
-        # If it is installed, then uses its namespace and all should work!
-        if (isTRUE(requireNamespace("mgcv", quietly = TRUE))) {
-          cat("\n")
-          cat("Calculating fitted values for the GAM regression \n")
-          if (any(!is.na(N)) & length(N) > 1) {
-            select <- N
-          }
-          else {
-            N <- min(he$n.sim, N, na.rm = T)
-            if (N == he$n.sim) {
-              select <- 1:he$n.sim
+            cat("Calculating fitted values for the GAM regression \n")
+            
+            inp <- names(inputs)[parameter]
+            if (exists("formula", where = exArgs)) {
+              form <- exArgs$formula
             }
             else {
-              select <- sample(1:he$n.sim, size = N, replace = F)
+              form <- paste("te(", paste(inp, ",", sep = "", 
+                                         collapse = ""), "bs='cr')")
             }
-          }
-          inp <- names(inputs)[parameters]
-          # If the user wants to use the default case
-          if (exists("formula", where = exArgs)) {
-            form <- exArgs$formula
-          }
-          else {
-            form <- paste("te(", paste(inp, ",", sep = "", 
-                                       collapse = ""), "bs='cr')")
-          }
-          # Fit the GAM regression
-          fit <- fit.gam(parameter = parameters, input = input, 
-                         x = he, select = select, formula = form)
-        }
-      }
-      
-      ## GP Regression
-      if (exArgs$method == "gp" || exArgs$method == "GP") {
-        method <- "GP"
-        mesh <- robust <- NULL
-        cat("\n")
-        cat("Calculating fitted values for the GP regression \n")
-        # Allows the user to select the number of PSA runs used to estimate the hyperparameters
-        if (!exists("n.sim", where = exArgs)) {
-          n.sim = 500
-        }
-        else {
-          n.sim = exArgs$n.sim
-        }
-        if (any(!is.na(N)) & length(N) > 1) {
-          select <- N
-        }
-        else {
-          N <- min(he$n.sim, N, na.rm = T)
-          if (N == he$n.sim) {
-            select <- 1:he$n.sim
-          }
-          else {
-            select <- sample(1:he$n.sim, size = N, replace = F)
+            fit <- fit.gam(parameter = parameter, inputs = inputs, 
+                           x = x, form = form)
           }
         }
-        fit <- fit.gp(parameter = parameter, input = input, 
-                      x = he, select = select, n.sim = n.sim)
-      }
-      
-      ## INLA/SPDE
-      if (exArgs$method == "INLA") {
-        method <- "INLA"
-        # If INLA is not installed, then asks for it
-        if (!isTRUE(requireNamespace("INLA", quietly = TRUE))) {
-          stop("You need to install the packages 'INLA' and 'splancs'. Please run in your R terminal:\n install.packages('INLA', repos='http://www.math.ntnu.no/inla/R/stable')\n and\n install.packages('splancs')")
-        }
-        # If it is installed, then uses its namespace and all should work!
-        if (isTRUE(requireNamespace("INLA", quietly = TRUE))) {
-          if (!is.element("INLA", (.packages()))) {
-            attachNamespace("INLA")
-          }
-          #Restricts the number of PSA samples used to calculate the EVPPI - speeds up computation time
-          # Lets the user select either: 1) all the PSA samples in the bcea object (N=NA); or 2) a fixed number N
-          # (and will sample N out of he$n.sim values at random); or 3) even a specified vector of values (length(N)>1) 
-          if (any(!is.na(N)) & length(N) > 1) {
-            select <- N
-          }
-          else {
-            N <- min(he$n.sim, N, na.rm = T)
-            if (N == he$n.sim) {
-              select <- 1:he$n.sim
-            }
-            else {
-              select <- sample(1:he$n.sim, size = N, replace = F)
-            }
-          }
+        if (method == "gp" || method == "GP") {
+          method <- "GP"
+          mesh <- robust <- NULL
           cat("\n")
-          cat("Finding projections \n")
-          projections <- make.proj(inputs = inputs, parameters = parameters, 
-                                   select = select)
-          Data.Scale <- projections$Data.Scale
-          
-          cat("Determining Mesh \n")
-          #Find mesh that fits the scaled projections
-          # NB: Includes this in a suppressMessage command to prevent R from printing stuff about loading several packages
-          # Allows the user to specify the density of the mesh & how far the boundaries are from the data points
-          if (!exists("cutoff", where = exArgs)) {
-            cutoff = 0.3
+          cat("Calculating fitted values for the GP regression \n")
+          if (!exists("n.sim", where = exArgs)) {
+            n.sim = 500
           }
           else {
-            cutoff = exArgs$cutoff
+            n.sim = exArgs$n.sim
           }
-          if (!exists("convex.inner", where = exArgs)) {
-            convex.inner = -0.4
-          }
-          else {
-            convex.inner = exArgs$convex.inner
-          }
-          if (!exists("convex.outer", where = exArgs)) {
-            convex.outer = -0.7
-          }
-          else {
-            convex.outer = exArgs$convex.outer
-          }
-          mesh <- make.mesh(data = Data.Scale, convex.inner = convex.inner, 
-                            convex.outer = convex.outer, cutoff = cutoff)
-          # Possibly makes the plot of the mesh
-          plot.mesh(mesh = mesh$mesh, data = Data.Scale, 
-                    plot = plot)
-          
-          #Calculating a set of fitted values for each decision option (INB - to reduce fitting)
-          cat("Calculating fitted values for the GP regression using INLA/SPDE \n")
-          if (exists("h.value", where = exArgs)) {
-            h.value = exArgs$h.value
-          }
-          else {
-            h.value = 0.00005
-          }
-          if (exists("robust", where = exArgs)) {
-            if (exArgs$robust == TRUE) {
-              family = "T"
-              robust = TRUE
-            }
-            else {
-              family = "gaussian"
-              robust = FALSE
-            }
-          }
-          else {
-            family = "gaussian"
-            robust = FALSE
-          }
-          if (exists("int.ord", where = exArgs)) {
-            int.ord = exArgs$int.ord
-          }
-          else {
-            int.ord = c(1, 1)
-          }
-          
-          fit <- fit.inla(parameters = parameters, inputs = inputs, 
-                          x = he, select = select, mesh = mesh$mesh, 
-                          data.scale = Data.Scale, int.ord = int.ord, 
-                          convex.inner = convex.inner, convex.outer = convex.outer, 
-                          cutoff = cutoff, h.value = h.value)
+          fit <- fit.gp(parameter = parameter, inputs = inputs, x = x, n.sim = n.sim)
         }
-      }
-      
-      # Computes the EVPPI
-      cat("Calculating EVPPI \n")
-      comp <- compute.evppi(x = he, fit = fit, method = method)
-      # Prepares the output for plot.evppi
-      name <- prepare.output(parameter, input)
-      # Formats computational time 
-      if (method == "INLA") {
-        time <- c(projections$time, mesh$time, fit$time, 
-                  comp$time)
-        time[5] <- sum(time)
-        time <- as.matrix(time)
-        rownames(time) = c("Finding projections", "Determining mesh", 
-                           "Model fitting", "EVPPI computation", "Total")
-      }
-      else {
-        time <- c(fit$time, comp$time)
-        time[3] <- sum(time)
-        time <- as.matrix(time)
-        rownames(time) = c("Model fitting", "EVPPI computation", 
-                           "Total")
-      }
-      colnames(time) = "Running time (seconds)"
-      # Sets up the outcome
-      if (residuals == TRUE || residuals == T) {
-        res <- list(evppi = comp$EVPPI, index = parameters, 
-                    k = he$k, evi = he$evi, parameters = name, time = time, 
-                    formula = fit$formula, method = method, fitted.costs = fit$fitted.costs, 
-                    fitted.effects = fit$fitted.effects, fit.e = fit$fit.e, 
-                    fit.c = fit$fit.c, mesh = mesh)
-      }
-      
-      else {
-        res <- list(evppi = comp$EVPPI, index = parameters, 
-                    k = he$k, evi = he$evi, parameters = name, time = time, 
-                    formula = fit$formula, method = method)
+        if (method == "INLA") {
+          method <- "INLA"
+          if (!isTRUE(requireNamespace("INLA", quietly = TRUE))) {
+            stop("You need to install the packages 'INLA' and 'splancs'. Please run in your R terminal:\n install.packages('INLA', repos='http://www.math.ntnu.no/inla/R/stable')\n and\n install.packages('splancs')")
+          }
+          if (!isTRUE(requireNamespace("ldr", quietly = TRUE))) {
+            stop("You need to install the package 'ldr'. Please run in your R terminal:\n install.packages('ldr')")
+          }
+          if (isTRUE(requireNamespace("ldr", quietly = TRUE))) {
+            
+            if (isTRUE(requireNamespace("INLA", quietly = TRUE))) {
+              if (!is.element("INLA", (.packages()))) {
+                attachNamespace("INLA")
+              }
+              if(length(parameter)<2){
+                stop("The INLA method can only be used with 2 or more parameters")
+              }
+              cat("\n")
+              cat("Finding projections \n")
+              projections <- make.proj(parameter=parameter,inputs = inputs,x=x,k=k,l=l)
+              data <- projections$data
+              cat("Determining Mesh \n")
+              if (!exists("cutoff", where = exArgs)) {
+                cutoff = 0.3
+              }
+              else {
+                cutoff = exArgs$cutoff
+              }
+              if (!exists("convex.inner", where = exArgs)) {
+                convex.inner = -0.4
+              }
+              else {
+                convex.inner = exArgs$convex.inner
+              }
+              if (!exists("convex.outer", where = exArgs)) {
+                convex.outer = -0.7
+              }
+              else {
+                convex.outer = exArgs$convex.outer
+              }
+              if (!exists("max.edge", where = exArgs)) {
+                max.edge = 0.7
+              }
+              else {
+                max.edge = exArgs$max.edge
+              }
+              mesh <- make.mesh(data = data, convex.inner = convex.inner, 
+                                convex.outer = convex.outer, cutoff = cutoff,max.edge=max.edge)
+              plot.mesh(mesh = mesh$mesh, data = data, 
+                        plot = plot)
+              cat("Calculating fitted values for the GP regression using INLA/SPDE \n")
+              if (exists("h.value", where = exArgs)) {
+                h.value = exArgs$h.value
+              }
+              else {
+                h.value = 5e-05
+              }
+              if (exists("robust", where = exArgs)) {
+                if (exArgs$robust == TRUE) {
+                  family = "T"
+                  robust = TRUE
+                }
+                else {
+                  family = "gaussian"
+                  robust = FALSE
+                }
+              }
+              else {
+                family = "gaussian"
+                robust = FALSE
+              }
+              if (exists("int.ord", where = exArgs)) {
+                int.ord = exArgs$int.ord[[k]][l]
+              }
+              else {
+                int.ord = 1
+              }
+              fit <- fit.inla(parameter = parameter, inputs = inputs, 
+                              x = x, mesh = mesh$mesh, data.scale = data, int.ord = int.ord, 
+                              convex.inner = convex.inner, convex.outer = convex.outer, 
+                              cutoff = cutoff, max.edge = max.edge, h.value = h.value,family=family)
+            }
+          }
+        }
+        fit.full[[k]][,l]<-fit$fitted
+        ###Calculating Time Taken
+        if (method == "INLA") {
+          time. <- c(projections$time, mesh$time, fit$time)
+          time. <- sum(time.)
+          time[[k]][l] <- (time.)
+        }
+        else {
+          time. <- fit$time
+          time[[k]][l] <- time.
+        }
       }
     }
+    cat("Calculating EVPPI \n")
+    comp <- compute.evppi(he = he, fit.full = fit.full)
+    name <- prepare.output(parameter=parameters, inputs=inputs)
+    time[[3]]<-comp$time
+    names(time)<-c("Fitting for Effects","Fitting for Costs","Calculating EVPPI")
+    names(exArgs$method)<-c("Methods for Effects","Methods for Costs")
+    
+    if (residuals == TRUE || residuals == T) {
+      res <- list(evppi = comp$EVPPI, index = parameters, 
+                  k = he$k, evi = he$evi, parameters = name, time = time, 
+                  method = exArgs$method, fitted.costs = fit.full[[2]], 
+                  fitted.effects = fit.full[[1]])
+    }
+    else {
+      res <- list(evppi = comp$EVPPI, index = parameters, 
+                  k = he$k, evi = he$evi, parameters = name, time = time, method = exArgs$method)
+    }
+    
   }
-  ### 
+  
   class(res) <- "evppi"
   return(res)
-}
+  }
 
 
-######plot.evppi##############################################################################################
+
+######plot.evppi################################################################################################
 plot.evppi<-function (x, pos = c(0, 0.8), graph = c("base", "ggplot2"), col = NULL, 
-                      ...){
-  # Plots the EVPI and the EVPPI for all the parameters being monitored
-  # x is a "evppi" object obtained by a call to the function evppi
-  # col is a vector specifying the colors to be used in the graphs
-  #     if null, then all are in black
+                      ...) 
+{
   options(scipen = 10)
   alt.legend <- pos
   base.graphics <- ifelse(isTRUE(pmatch(graph, c("base", "ggplot2")) == 
@@ -3533,8 +3271,7 @@ plot.evppi<-function (x, pos = c(0, 0.8), graph = c("base", "ggplot2"), col = NU
         col <- rep("black", length(x$parameters))
       }
     }
-    if (length(x$index) == 1 | length(x$index) > 1 & (x$method == 
-                                                      "INLA" || x$method == "GAM" || x$method == "GP")) {
+    if (length(x$index) == 1 | length(x$index) > 1 & (class(x$method)=="list")) {
       col = "black"
       points(x$k, x$evppi, t = "l", col = col, lty = 1)
     }
@@ -3572,8 +3309,6 @@ plot.evppi<-function (x, pos = c(0, 0.8), graph = c("base", "ggplot2"), col = NU
     }
   }
 }
-
-
 
 
 ######diag.evppi################################################################################################
@@ -4133,15 +3868,17 @@ ceef.plot <- function(he, comparators=NULL, pos=c(1,1), start.from.origins=TRUE,
      }
    }else{
      parameters=parameter
-     parameter=colnames(input)[parameters]
+####     parameter=colnames(input)[parameters]
    }
+   parameter=colnames(input)[parameters]
    
    # needs to exclude parameters with weird behaviour (ie all 0s)
    w <- unlist(lapply(parameter,function(x) which(colnames(input)==x)))
    input <- input[,w]
    chk1 <- which(apply(input,2,var)>0)   # only takes those with var>0
-   tmp <- list(); tmp <- apply(input,2,function(x) table(x)) # check those with <5 possible values (would break GAM)
+   tmp <- lapply(1:dim(input)[2],function(x) table(input[,x])) # check those with <5 possible values (would break GAM)
    chk2 <- which(unlist(lapply(tmp,function(x) length(x)>=5))==TRUE)
+   names(chk2) <- colnames(input[,chk2])
    
    # Can do the analysis on a smaller number of PSA runs
    if(exists("N",where=exArgs)) {N <- exArgs$N} else {N <- he$n.sim}

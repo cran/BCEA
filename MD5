@@ -1,10 +1,10 @@
-a2ab1c3aee59f62d76fd1e61620aec57 *DESCRIPTION
+299424cdbb7be411b59915fdd2e81c03 *DESCRIPTION
 0f18184a7ac9904a685f40142967a251 *NAMESPACE
-157ff28323db9388e8f4e432501c13f1 *R/bcea.R
-8e9199d7c6198d666c0dbbb5d92a5285 *data/Smoking.RData
-0f8cf6edae12097ca1c2f65091eabeb7 *data/Vaccine.RData
+c75e4a6832e1801f98b4081a0ed9aaab *R/bcea.R
+99899e31218adc648c7a9d648c3080eb *data/Smoking.RData
+d9fffbdff75de17351daf56f60494de9 *data/Vaccine.RData
 8155fa4f8e45c85754d042d0bd61dcd9 *data/datalist
-75c76c3a14abf24adc0e2dcaa32d08b1 *man/BCEA-package.Rd
+21004da3c692645f5d95d28606ffe7b9 *man/BCEA-package.Rd
 340f3a0cd4264b12282116f523f91f27 *man/CEriskav.Rd
 58343423075de30dfaa6f058ae41c485 *man/CreateInputs.Rd
 4153925e1caff2757b026465e1fdec7c *man/Smoking.Rd
@@ -19,7 +19,7 @@ aef7cb875fa4aa8e507e2a317ead1365 *man/contour2.Rd
 7affdf050f57abe3d4b2e8b4e0d28426 *man/diag.evppi.Rd
 5c55a32b95e4593c5c221ad1f367313b *man/eib.plot.Rd
 be4e97f05637978e6612fc1eeb330338 *man/evi.plot.Rd
-badae4df1a6bafd99afd535203214d9d *man/evppi.Rd
+f4b31d7d6ef85ab9c889be509cbfd8f5 *man/evppi.Rd
 3dba19ee585ab115efc6e521505e9f6c *man/ib.plot.Rd
 7740e203487a7807213c400b3d3d00d9 *man/info.rank.Rd
 399a43fd0cd0a2781e9f9a8a8b537a47 *man/mce.plot.Rd
