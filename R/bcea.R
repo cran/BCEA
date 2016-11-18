@@ -20,6 +20,7 @@
 ## v2.2.1 GB+AH October 2015: adds the info-rank plot
 ## v2.2.2 AB January 2016: minor change to ceef.plot to align with ggplot2 v2.0.0
 ## v2.2.3 AH+GB May 2016: major update for the EVPPI to include PFC + fixed issues with info.rank
+## v2.2.4 AB Nov 2016: fixes for new ggplot2 version (legend.spacing() and plot.title hjust argument)
 ## (C) Gianluca Baio + contributions by Andrea Berardi, Chris Jackson, Mark Strong & Anna Heath
 
 ###Functions included################################################################################
@@ -727,9 +728,9 @@ ceplane.plot <- function(he,comparison=NULL,wtp=25000,pos=c(1,1),
             }
             
             ceplane <- ceplane + 
-                ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),legend.background=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold")) +
-                ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"lines"),legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank(),legend.text.align=0) +
-                ggplot2::theme(plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3)) +
+                ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),legend.background=ggplot2::element_blank()) +
+                ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"lines"),legend.spacing=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank(),legend.text.align=0) +
+                ggplot2::theme(plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3,hjust=0.5)) +
                 opt.theme
             
             if(he$n.comparisons==1)
@@ -853,10 +854,10 @@ ib.plot <- function(he,comparison=NULL,wtp=25000,bw=nbw,n=512,xlim=NULL,graph=c(
                              he$interventions[he$comp[comparison]],"")
         
         ib <- ib + 
-            ggplot2::theme(plot.title=ggplot2::element_text(face="bold"),text=ggplot2::element_text(size=11),
-                           panel.grid=ggplot2::element_blank(),axis.text.y=ggplot2::element_blank(),axis.ticks.y=ggplot2::element_blank()) +
+            ggplot2::theme(text=ggplot2::element_text(size=11),panel.grid=ggplot2::element_blank(),
+                           axis.text.y=ggplot2::element_blank(),axis.ticks.y=ggplot2::element_blank()) +
             ggplot2::labs(title=labs.title,x=parse(text="IB(theta)"),y="Density") +
-            ggplot2::theme(plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
+            ggplot2::theme(plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3,hjust=0.5))
         return(ib)
         
     } #! base.graphics
@@ -1138,9 +1139,9 @@ eib.plot <- function(he,comparison=NULL,pos=c(1,0),size=NULL,plot.cri=NULL,graph
         eib <- eib + 
             ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),
                            legend.background=ggplot2::element_blank(),text=ggplot2::element_text(size=11),
-                           legend.key.size=grid::unit(.66,"lines"),legend.margin=grid::unit(-1.25,"line"),
+                           legend.key.size=grid::unit(.66,"lines"),legend.spacing=grid::unit(-1.25,"line"),
                            panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank(),legend.text.align=0,
-                           plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3)) +
+                           plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3,hjust=0.5)) +
             opt.theme
         
         return(eib)
@@ -1293,9 +1294,9 @@ ceac.plot <- function(he,comparison=NULL,pos=c(1,0),graph=c("base","ggplot2")) {
         ceac <- ceac + 
             ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),
                            legend.background=ggplot2::element_blank(),text=ggplot2::element_text(size=11),
-                           legend.key.size=grid::unit(.66,"lines"),legend.margin=grid::unit(-1.25,"line"),
+                           legend.key.size=grid::unit(.66,"lines"),legend.spacing=grid::unit(-1.25,"line"),
                            panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank(),legend.text.align=0,
-                           plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
+                           plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3,hjust=0.5))
         return(ceac)
     } # !base.graphics
 }
@@ -1334,8 +1335,7 @@ evi.plot <- function(he,graph=c("base","ggplot2")) {
         data.psa <- with(he,data.frame("k"=c(k),"evi"=c(evi)))
         
         evi <- ggplot2::ggplot(data.psa, ggplot2::aes(k,evi)) + ggplot2::geom_line() + ggplot2::theme_bw() +
-            ggplot2::labs(title="Expected Value of Information",x="Willingness to pay",y="EVPI") +
-            ggplot2::theme(plot.title=ggplot2::element_text(face="bold"))
+            ggplot2::labs(title="Expected Value of Information",x="Willingness to pay",y="EVPI")
         
         if(length(he$kstar)!=0) {
             kstars=length(he$kstar)
@@ -1353,9 +1353,9 @@ evi.plot <- function(he,graph=c("base","ggplot2")) {
         
         evi <- evi +
             ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"lines"),
-                           legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),
+                           legend.spacing=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),
                            legend.key=ggplot2::element_blank(),
-                           plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
+                           plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3,hjust=0.5))
         return(evi)
     }
 }
@@ -1408,8 +1408,8 @@ plot.bcea <- function(x,comparison=NULL,wtp=25000,pos=FALSE,graph=c("base","ggpl
             
             theme.multiplot <- 
                 ggplot2::theme(text=ggplot2::element_text(size=9),legend.key.size=grid::unit(.5,"lines"),
-                               legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),
-                               legend.key=ggplot2::element_blank(),plot.title=ggplot2::element_text(lineheight=1,face="bold",size=11.5))
+                               legend.spacing=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),
+                               legend.key=ggplot2::element_blank(),plot.title=ggplot2::element_text(lineheight=1,face="bold",size=11.5,hjust=0.5))
             
             exArgs <- list(...)
             for(obj in exArgs)
@@ -1730,9 +1730,9 @@ contour.bcea <- function(x,comparison=1,scale=0.5,nlevels=4,levels=NULL,pos=c(1,
         ceplane <- ceplane + 
             ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),
                            legend.background=ggplot2::element_blank(),text=ggplot2::element_text(size=11),
-                           legend.key.size=grid::unit(.66,"lines"),legend.margin=grid::unit(-1.25,"line"),
+                           legend.key.size=grid::unit(.66,"lines"),legend.spacing=grid::unit(-1.25,"line"),
                            panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank(),legend.text.align=0,
-                           plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
+                           plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3,hjust=0.5))
         return(ceplane)
     } # !base.graphics
 }
@@ -2045,14 +2045,14 @@ plot.CEriskav <- function(x,pos=c(0,1),graph=c("base","ggplot2"),...) {
             ggplot2::scale_linetype_manual("",labels=text,values=linetypes)+ggplot2::theme_bw() +
             ggplot2::labs(title="EIB as a function of the risk aversion parameter",x="Willingness to pay",y="EIB") +
             ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"line"),
-                           legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank())
+                           legend.spacing=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank())
         
         ### evir ###
         evir <- ggplot2::ggplot(df,ggplot2::aes(x=k,y=evir,linetype=r))+ggplot2::geom_hline(yintercept=0,linetype=1,colour="grey50")+
             ggplot2::geom_line()+ggplot2::scale_linetype_manual("",labels=text,values=linetypes)+ggplot2::theme_bw() +
             ggplot2::labs(title="EVPI as a function of the risk aversion parameter",x="Willingness to pay",y="EVPI") +
             ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"line"),
-                           legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank())
+                           legend.spacing=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank())
         jus <- NULL
         if(isTRUE(alt.legend)) {
             alt.legend="bottom"
@@ -2077,13 +2077,13 @@ plot.CEriskav <- function(x,pos=c(0,1),graph=c("base","ggplot2"),...) {
         
         eibr <- eibr + 
             ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),
-                           legend.background=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold"),legend.text.align=0,
-                           plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
+                           legend.background=ggplot2::element_blank(),legend.text.align=0,
+                           plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3,hjust=0.5))
         
         evir <- evir + 
             ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),
-                           legend.background=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold"),
-                           legend.text.align=0,plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
+                           legend.background=ggplot2::element_blank(),
+                           legend.text.align=0,plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3,hjust=0.5))
         plot(eibr)
         
         if(is.null(howplot)) {
@@ -2256,8 +2256,8 @@ plot.mixedAn <- function(x,y.limits=NULL,pos=c(0,1),graph=c("base","ggplot2"),..
                 ggplot2::scale_colour_manual("",labels=txt,values=colours) +
                 ggplot2::labs(title="Expected Value of Information",x="Willingness to pay",y="EVPI") +
                 ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"lines"),
-                               legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),
-                               legend.key=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold"))
+                               legend.spacing=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),
+                               legend.key=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold",hjust=0.5))
             jus <- NULL
             if(isTRUE(alt.legend)) {
                 alt.legend="bottom"
@@ -2281,8 +2281,8 @@ plot.mixedAn <- function(x,y.limits=NULL,pos=c(0,1),graph=c("base","ggplot2"),..
             
             evi <- evi + 
                 ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),
-                               legend.background=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold"),
-                               legend.text.align=0,plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
+                               legend.background=ggplot2::element_blank(),
+                               legend.text.align=0,plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3,hjust=0.5))
             return(evi)
         }
     }
@@ -2380,8 +2380,8 @@ mce.plot <- function(mce,pos=c(1,0.5),graph=c("base","ggplot2")){
                 ggplot2::scale_linetype_manual("",labels=label,values=lty) +
                 ggplot2::labs(title="Cost-effectiveness acceptability curve\nfor multiple comparisons",x="Willingness to pay",y="Probability of most cost effectiveness") +
                 ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"lines"),
-                               legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),
-                               legend.key=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold"))
+                               legend.spacing=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),
+                               legend.key=ggplot2::element_blank())
             
             jus <- NULL
             if(isTRUE(alt.legend)) {
@@ -2406,8 +2406,8 @@ mce.plot <- function(mce,pos=c(1,0.5),graph=c("base","ggplot2")){
             
             mceplot <- mceplot + ggplot2::coord_cartesian(ylim=c(-0.05,1.05)) +
                 ggplot2::theme(legend.position=alt.legend,legend.justification=jus,legend.title=ggplot2::element_blank(),
-                               legend.background=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold"),
-                               legend.text.align=0,plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
+                               legend.background=ggplot2::element_blank(),
+                               legend.text.align=0,plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3,hjust=0.5))
             return(mceplot)
         }
     }
@@ -2435,9 +2435,10 @@ ceaf.plot <- function(mce,graph=c("base","ggplot2")){
         df <- data.frame("k"=mce$k,"ceaf"=mce$ceaf)
         ceaf <- ggplot2::ggplot(df,ggplot2::aes(x=k,y=ceaf)) + ggplot2::theme_bw() +
             ggplot2::geom_line() + ggplot2::coord_cartesian(ylim=c(-0.05,1.05)) +
-            ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"lines"),legend.margin=grid::unit(-1.25,"line"),panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank(),plot.title=ggplot2::element_text(face="bold")) +
+            ggplot2::theme(text=ggplot2::element_text(size=11),legend.key.size=grid::unit(.66,"lines"),legend.spacing=grid::unit(-1.25,"line"),
+                           panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank()) +
             ggplot2::labs(title="Cost-effectiveness acceptability frontier",x="Willingness to pay",y="Probability of most cost-effectiveness") +
-            ggplot2::theme(plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3))
+            ggplot2::theme(plot.title = ggplot2::element_text(lineheight=1.05, face="bold",size=14.3,hjust=0.5))
         return(ceaf)
     }
 }
@@ -2457,6 +2458,9 @@ evppi.default<-function (parameter, input, he, N = NULL, plot = F, residuals = T
   # different curve. The formula arguement for GAM can only be given once, either 'te()' or 's()+s()' as this is 
   # for computational reasons rather than to aid fit. You can still plot the INLA mesh elements but not output the meshes.
   
+  if (is.null(colnames(input))) {
+    colnames(input) <- paste0("theta",1:dim(input)[2])
+  }
   if (class(parameter[1]) == "numeric" | class(parameter[1]) == "integer") {
     parameters = colnames(input)[parameter]
   }
@@ -2641,7 +2645,7 @@ evppi.default<-function (parameter, input, he, N = NULL, plot = F, residuals = T
   make.proj <- function(parameter,inputs, x,k,l) {
     tic <- proc.time()
     scale<-8/(range(x)[2]-range(x)[1])
-    scale.x<-scale*x
+    scale.x <- scale*x -mean(scale*x)
     bx<-ldr::bf(scale.x,case="poly",2)
     fit1<-ldr::pfc(scale(inputs[,parameter]),scale.x,bx,structure="iso")
     fit2<-ldr::pfc(scale(inputs[,parameter]),scale.x,bx,structure="aniso")
@@ -3346,7 +3350,7 @@ diag.evppi <- function(x,y,diag=c("residuals","qqplot"),int=1){
 CreateInputs <- function(x) {
     # Utility function --- creates inputs for the EVPPI
     # First checks whether the model is run with JAGS or BUGS
-    # 1. checks whether each model has been run using JAGS or BUGS    
+    # 1. checks whether each model has been run using JAGS or BUGS or Stan  
     if(class(x)=="rjags") {
         if(!isTRUE(requireNamespace("R2jags",quietly=TRUE))) {
             stop("You need to install the package 'R2jags'. Please run in your R terminal:\n install.packages('R2jags')")
@@ -3363,17 +3367,21 @@ CreateInputs <- function(x) {
             mdl <- x
         }
     }
-    
-    ##stopifnot(requireNamespace("R2jags"))  # needs to load this library (which automatically also loads R2WinBUGS)
-    ##cmd <- ifelse(class(x)=="rjags",mdl <- x$BUGSoutput, mdl <- x)
-    
-    # Defines the inputs matrix  
-    inputs <- mdl$sims.matrix
-    # If the deviance is computed, then removes it 
-    if("deviance"%in%colnames(inputs)) {
+    if (class(x)%in%c("bugs","rjags")) {
+      # Defines the inputs matrix  
+      inputs <- mdl$sims.matrix
+      # If the deviance is computed, then removes it 
+      if("deviance"%in%colnames(inputs)) {
         w <- which(colnames(inputs)=="deviance")
         inputs <- inputs[,-w]
+      }
     }
+    if(class(x)=="stanfit") { # if the model is run with Stan
+      inputs <- as.data.frame(x)
+      # Removes the likelihood, which is never a relevant parameters for HE evaluation
+      inputs <- inputs[,-which(colnames(inputs)=="lp__")]
+    }
+    # 2. saves the output to a relevant list
     pars <- colnames(data.frame(inputs))
     list(mat=data.frame(inputs),parameters=pars)
 }
@@ -3815,9 +3823,9 @@ ceef.plot <- function(he, comparators=NULL, pos=c(1,1), start.from.origins=TRUE,
         ceplane <- ceplane + 
             ggplot2::theme(legend.position=pos,legend.justification=jus,legend.title=ggplot2::element_blank(),
                            legend.background=ggplot2::element_blank(),text=ggplot2::element_text(size=11),
-                           legend.key.size=grid::unit(.66,"lines"),legend.margin=grid::unit(-1.25,"line"),
+                           legend.key.size=grid::unit(.66,"lines"),legend.spacing=grid::unit(-1.25,"line"),
                            panel.grid=ggplot2::element_blank(),legend.key=ggplot2::element_blank(),legend.text.align=0,
-                           plot.title = ggplot2::element_text(face="bold",lineheight=1.05,size=14.3)) +
+                           plot.title = ggplot2::element_text(hjust=0.5,face="bold",lineheight=1.05,size=14.3)) +
             opt.theme
         
         if(flip) ceplane  <- ceplane + ggplot2::coord_flip()
