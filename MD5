@@ -1,4 +1,4 @@
-0e1c6e38e5ae65d0e8ec6834ed26a793 *DESCRIPTION
+01d28b9a2d71ae1ff390436eeab7d126 *DESCRIPTION
 c58d062b838efc2183d0d0502b8c8f5d *NAMESPACE
 74445731a8ddfc75216bfc751791dbc3 *R/BCEA-package.R
 020fd47557444bd68dafae29262a9a12 *R/BCEAweb.R
@@ -34,9 +34,8 @@ aa6c5bc8b9e916af865211135fc1fdd6 *R/plot.bcea.R
 1f4bcb88dac58298403485ee1feadf49 *R/summary.bcea.R
 1bd7f4384edaf2b8eeb1adc3b306678b *R/summary.mixedAn.R
 b4d7b36fac5f4645d1ccc085aa1713f6 *R/zzz.R
-99899e31218adc648c7a9d648c3080eb *data/Smoking.RData
-d9fffbdff75de17351daf56f60494de9 *data/Vaccine.RData
-5defea53d383b50c715d3ec429d057cd *data/datalist
+8a33ab05bce91efa167c74c816739a62 *data/Smoking.RData
+7f68ca2968abebb0fe4e2912047589cd *data/Vaccine.RData
 f426ea9e5fc1d90cee5d86f4db500f2e *inst/BCEAweb/chunks/CEAC.Rmd
 37e7976cb92d044bd1e144312a4cd129 *inst/BCEAweb/chunks/CEAF.Rmd
 64aef53ab22d5e39fd7bb2144011bfa5 *inst/BCEAweb/chunks/CEAnalysis.Rmd

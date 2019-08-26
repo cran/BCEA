@@ -1,7 +1,7 @@
 Package: BCEA
 Type: Package
 Title: Bayesian Cost Effectiveness Analysis
-Version: 2.3-1
+Version: 2.3-1.1
 Date: 2019-08-05
 Author: Gianluca Baio, Andrea Berardi, Anna Heath
 Maintainer: Gianluca Baio <gianluca@stats.ucl.ac.uk>
@@ -17,6 +17,6 @@ Depends: R (>= 2.10)
 NeedsCompilation: no
 RoxygenNote: 6.1.1
 Encoding: UTF-8
-Packaged: 2019-08-05 07:54:37 UTC; gianluca
+Packaged: 2019-08-26 07:41:20 UTC; hornik
 Repository: CRAN
-Date/Publication: 2019-08-05 08:40:02 UTC
+Date/Publication: 2019-08-26 07:55:24 UTC
