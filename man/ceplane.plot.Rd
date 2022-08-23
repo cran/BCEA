@@ -42,7 +42,31 @@ corner inside the plot area.}
 plotting. Should (partial-) match the two options \code{"base"} or
 \code{"ggplot2"}. Default value is \code{"base"}.}
 
-\item{...}{Additional arguments}
+\item{...}{If \code{graph = "ggplot2"} and a named theme object is supplied,
+ it will be passed to the ggplot object. The usual ggplot2 syntax is used.
+ Additional graphical arguments:
+\itemize{
+ \item \code{label.pos = FALSE}: will place the willingness to pay label in a
+ different  position at the bottom of the graph - base and ggplot2 only (no
+ label in plotly).
+ \item \code{line = list(color)}: a colour specifying the colour of the willingness-to-pay line.
+ \item \code{point = list(color)}: a vector of colours specifying the colour(s) associated
+ to the cloud of points. Should be of length 1 or equal to the number of comparisons.
+ \item \code{point = list(size)}: a vector of colours specifying the size(s) of the points.
+ Should be of length 1 or equal to the number of comparisons.
+ \item \code{point = list(shape)}: a vector of shapes specifying type(s) of the points.
+ Should be of length 1 or equal to the number of comparisons.
+ \item \code{icer = list(color)}: a vector of colours specifying the colour(s) of the ICER
+ points. Should be of length 1 or equal to the number of comparisons.
+ \item \code{icer = list(size)}: a vector of colours specifying the size(s) of the ICER
+ points. Should be of length 1 or equal to the number of comparisons.
+ \item \code{area_include}: logical, include or exclude the cost-effectiveness 
+ acceptability area (default is TRUE).
+ \item \code{area = list(color)}: a colour specifying the colour of the cost-effectiveness
+ acceptability area.
+ \item \code{currency}: Currency prefix to cost differential values - ggplot2 only.
+ \item \code{icer_annot}: Annotate each ICER point with text label - ggplot2 only.
+}}
 }
 \value{
 If \code{graph = "ggplot2"} a ggplot object, or if \code{graph = "plotly"} 
@@ -64,15 +88,15 @@ together with the sustainability area, as a function of
 the selected willingness to pay threshold.
 }
 \details{
-In the plotly version, point_colors, ICER_colors and area_color can also
-be specified as rgba colours using either the \code{\link[plotly]{toRGB}}
+In the plotly version, \code{point_colors}, \code{ICER_colors} and \code{area_color} can also
+be specified as rgba colours using either the \code{[plotly]toRGB}
 function or a rgba colour string, e.g. \code{'rgba(1, 1, 1, 1)'}.
 }
 \examples{
 ## create the bcea object for the smoking cessation example
 data(Smoking)
 
-m <- bcea(e, c, ref = 4, Kmax = 500, interventions = treats)
+m <- bcea(eff, cost, ref = 4, Kmax = 500, interventions = treats)
 
 ## produce the base plot
 ceplane.plot(m, wtp = 200, graph = "base")
@@ -82,7 +106,7 @@ ceplane.plot(m, wtp = 200, graph = "base", comparison = 3)
 
 ## use ggplot2
 if (requireNamespace("ggplot2")) {
-   ceplane.plot(m, wtp = 200, pos = "right", ICER_size = 2, graph = "ggplot2")
+   ceplane.plot(m, wtp = 200, pos = "right", icer = list(size = 2), graph = "ggplot2")
 }
 
 ## plotly
@@ -91,10 +115,9 @@ ceplane.plot(m, wtp = 200, comparison = 1, graph = "plotly")
  
 }
 \references{
-Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity Analysis in Health Economics.
-Statistical Methods in Medical Research. doi:10.1177/0962280211419832.
+\insertRef{Baio2011}{BCEA}
 
-Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London.
+\insertRef{Baio2013}{BCEA}
 }
 \seealso{
 \code{\link{bcea}},
@@ -103,5 +126,4 @@ Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London.
 \author{
 Gianluca Baio, Andrea Berardi
 }
-\concept{"Health economic evaluation" "Cost Effectiveness Plane"}
 \keyword{hplot}

@@ -28,6 +28,7 @@
 #'   interval between the \code{alpha/2}-th and \code{1-alpha/2}-th quantiles of
 #'   the IB distribution. Setting \code{cri.quantile=FALSE} will use a normal
 #'   approximation on the IB distribution to calculate the intervals.
+#'   \item \code{currency}: Currency prefix to willingness to pay values - ggplot2 only.
 #'   \item \code{line_colors}: specifies the line colour(s) - all graph types.
 #'   \item \code{line_types}: specifies the line type(s) as lty numeric values - all graph types.
 #'   \item \code{area_include}: include area under the EIB curve - plotly only.
@@ -39,10 +40,10 @@ eib.plot.bcea <- function(he,
                           comparison = NULL,
                           pos = c(1, 0),
                           size = NULL,
-                          plot.cri = FALSE,
+                          plot.cri = NULL,
                           graph = c("base", "ggplot2", "plotly"),
                           ...) {
-  
+
   graph <- match.arg(graph)
   
   he <- setComparisons(he, comparison)
@@ -89,8 +90,8 @@ eib.plot.bcea <- function(he,
 #'   interval between the \code{alpha/2}-th and \code{1-alpha/2}-th quantiles of
 #'   the IB distribution. Setting \code{cri.quantile=FALSE} will use a normal
 #'   approximation on the IB distribution to calculate the intervals.
-#'   \item \code{line_colors}: specifies the line colour(s) - all graph types.
-#'   \item \code{line_types}: specifies the line type(s) as lty numeric values - all graph types.
+#'   \item \code{line = list(color)}: specifies the line colour(s) - all graph types.
+#'   \item \code{line = list(type)}: specifies the line type(s) as lty numeric values - all graph types.
 #'   \item \code{area_include}: include area under the EIB curve - plotly only.
 #'   \item \code{area_color}: specifies the AUC curve - plotly only.}
 #'    
@@ -108,15 +109,15 @@ eib.plot.bcea <- function(he,
 #'          \code{\link{ib.plot}},
 #'          \code{\link{ceplane.plot}}
 #' @references
-#' Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity
-#' Analysis in Health Economics. Statistical Methods in Medical Research
-#' doi:10.1177/0962280211419832.
+#' \insertRef{Baio2011}{BCEA}
 #' 
-#' Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London.
+#' \insertRef{Baio2013}{BCEA}
 #' 
-#' @keywords "Health economic evaluation" "Expected Incremental Benefit"
+#' @keywords hplot
 #' @import ggplot2
 #' @importFrom grid unit
+#' @importFrom Rdpack reprompt
+#' 
 #' @export
 #' 
 #' @examples
@@ -124,8 +125,8 @@ eib.plot.bcea <- function(he,
 #'  
 #' # Runs the health economic evaluation using BCEA
 #' m <- bcea(
-#'       e=e,
-#'       c=c,                  # defines the variables of 
+#'       e=eff,
+#'       c=cost,               # defines the variables of 
 #'                             #  effectiveness and cost
 #'       ref=2,                # selects the 2nd row of (e, c) 
 #'                             #  as containing the reference intervention
@@ -142,7 +143,7 @@ eib.plot.bcea <- function(he,
 #' data(Smoking)
 #' treats <- c("No intervention", "Self-help",
 #'             "Individual counselling", "Group counselling")
-#' m <- bcea(e, c, ref = 4, interventions = treats, Kmax = 500)
+#' m <- bcea(eff, cost, ref = 4, interventions = treats, Kmax = 500)
 #' eib.plot(m)
 #' 
 eib.plot <- function(he, ...) {

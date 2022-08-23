@@ -8,7 +8,7 @@
 \method{info.rank}{bcea}(
   he,
   inp,
-  wtp = he$k[min(which(he$k >= he$ICER))],
+  wtp = NULL,
   howManyPars = NA,
   graph = c("base", "ggplot2", "plotly"),
   rel = TRUE,
@@ -39,7 +39,7 @@ not specified then the break-even point for the current model will be used.}
 \item{howManyPars}{Optional maximum number of parameters to be included in the bar plot. 
 Includes all parameters by default.}
 
-\item{graph}{A string used to select the graphical enging to use for plotting.
+\item{graph}{A string used to select the graphical engine to use for plotting.
 Should (partial-)match one of the two options "base" or "plotly". Default value is "base"}
 
 \item{rel}{Logical argument that specifies whether the ratio of
@@ -75,12 +75,16 @@ parameter) to EVPI. This represents the relative `importance' of each
 parameter in terms of the expected value of information.
 }
 \examples{
+\dontrun{
+# Load the post-processed results of the MCMC simulation model
+# original JAGS output is can be downloaded from here
+# https://gianluca.statistica.it/book/bcea/code/vaccine.RData
+
 data("Vaccine")
-m <- bcea(e,c)
-inp <- createInputs(vaccine)
+m <- bcea(eff, cost)
+inp <- createInputs(vaccine_mat)
 info.rank(m, inp)
 
-\dontrun{
 info.rank(m, inp, graph = "base")
 info.rank(m, inp, graph = "plotly")
 info.rank(m, inp, graph = "ggplot2")
@@ -88,11 +92,9 @@ info.rank(m, inp, graph = "ggplot2")
 
 }
 \references{
-Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity
-Analysis in Health Economics. Statistical Methods in Medical Research
-doi:10.1177/0962280211419832.
+\insertRef{Baio2011}{BCEA}
 
-Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London.
+\insertRef{Baio2013}{BCEA}
 }
 \seealso{
 \code{\link{bcea}},

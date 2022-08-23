@@ -25,14 +25,12 @@
 #' @author Gianluca Baio, Andrea Berardi
 #' @seealso \code{\link{bcea}},
 #'          \code{\link{ceplane.plot}}
+#' @importFrom Rdpack reprompt
 #' 
 #' @references
-#' Baio, G., Dawid, A. P. (2011). Probabilistic Sensitivity
-#' Analysis in Health Economics. Statistical Methods in Medical Research
-#' doi:10.1177/0962280211419832.
+#' \insertRef{Baio2011}{BCEA}
+#' \insertRef{Baio2013}{BCEA}
 #' 
-#' Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London.
-#' @concept "Health economic evaluation"
 #' @export
 #' 
 ib.plot.bcea <- function(he,
@@ -47,7 +45,7 @@ ib.plot.bcea <- function(he,
   base.graphics <- all(pmatch(graph, c("base", "ggplot2")) != 2)
   
   if (!is.null(comparison))
-    stopifnot(comparison <= he$n.comparison)
+    stopifnot(comparison <= he$n_comparison)
   
   if (base.graphics) {
     ib_plot_base(he,

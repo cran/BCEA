@@ -17,7 +17,7 @@
 #' @author Gianluca Baio
 #' @seealso \code{\link{bcea}},
 #'          \code{\link{ceaf.plot}}
-#' @keywords "Health economic evaluation" "Multiple comparison"
+#' @keywords hplot dplot
 #' 
 #' @examples
 #' # See Baio G., Dawid A.P. (2011) for a detailed description of the 
@@ -28,7 +28,7 @@
 #'  
 #' # Runs the health economic evaluation using BCEA
 #' 
-#' m <- bcea(e=e,c=c,          # defines the variables of 
+#' m <- bcea(e=eff, c=cost,    # defines the variables of 
 #'                             #  effectiveness and cost
 #'       ref=2,                # selects the 2nd row of (e,c) 
 #'                             #  as containing the reference intervention

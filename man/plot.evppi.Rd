@@ -39,6 +39,7 @@ Set of Parameters
 }
 \examples{
 
+\dontrun{
 data(Vaccine, package = "BCEA")
 treats <- c("Status quo", "Vaccination")
 
@@ -46,14 +47,13 @@ treats <- c("Status quo", "Vaccination")
 m <- bcea(e.pts, c.pts, ref = 2, interventions = treats)
 
 # Compute the EVPPI for a bunch of parameters
-inp <- createInputs(vaccine)
+inp <- createInputs(vaccine_mat)
 
 # Compute the EVPPI using INLA/SPDE
 x0 <- evppi(m, c("beta.1." , "beta.2."), input = inp$mat)
 
 plot(x0, pos = c(0,1))
 
-\dontrun{
 x1 <- evppi(m, c(32,48,49), input = inp$mat)
 plot(x1, pos = "topright")
 
@@ -76,7 +76,7 @@ if (FALSE)
 
 }
 \references{
-Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London.
+\insertRef{Baio2013}{BCEA}
 }
 \seealso{
 \code{\link{bcea}}, \code{\link{evppi}}
@@ -84,10 +84,4 @@ Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London.
 \author{
 Gianluca Baio, Andrea Berardi
 }
-\keyword{"Expected}
-\keyword{"Health}
-\keyword{economic}
-\keyword{evaluation"}
-\keyword{information"}
-\keyword{of}
-\keyword{value}
+\keyword{hplot}

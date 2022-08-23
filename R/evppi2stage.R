@@ -33,8 +33,6 @@
 # #'             assumes no options and the existence of two vectors e,c in which suitable
 # #'             values for the measures of effectiveness and costs are stored
 # #'             
-# #' @importFrom R2WinBUGS attach.bugs detach.bugs
-# #' @importFrom R2jags jags
 # #' @return List
 # #'
 # evppi2stage <- function(phi,
@@ -51,7 +49,7 @@
 #                         n.mc = 1000,
 #                         working.dir = NULL,
 #                         ec.vars,
-#                         bcea.call = "bcea(e,c)") {
+#                         bcea.call = "bcea(eff, cost)") {
 #   
 #   # Replicates the C/E analysis for a fixed value of the relevant parameter at each iteration
 #   Ustar.phi <-

@@ -32,7 +32,6 @@ eib_plot_base <- function(he,
 }
 
 
-
 #' EIB plot ggplot2 version
 #' @rdname eib_plot_graph
 #' 
@@ -43,6 +42,7 @@ eib_plot_base <- function(he,
 #' @import ggplot2
 #' @importFrom grid unit
 #' @importFrom purrr keep
+#' @importFrom scales label_dollar
 #' 
 eib_plot_ggplot <- function(he,
                             graph_params,
@@ -81,6 +81,8 @@ eib_plot_ggplot <- function(he,
                linetype = 1) + 
     geom_cri(graph_params$plot.cri, cri_params) +
     do.call(annotate, graph_params$kstar) +
+    scale_x_continuous(
+      labels = scales::label_dollar(prefix = graph_params$currency)) +
     geom_vline(
       aes(xintercept = .data$kstar),
       data = data.frame("kstar" = he$kstar),
@@ -89,12 +91,12 @@ eib_plot_ggplot <- function(he,
       size = 0.5) +
     scale_linetype_manual(
       "",
-      labels = graph_params$plot$labels,
-      values = graph_params$plot$line$types) +
+      labels = graph_params$labels,
+      values = graph_params$line$type) +
     scale_colour_manual(
       "",
-      labels = graph_params$plot$labels,
-      values = graph_params$plot$line$colors)
+      labels = graph_params$labels,
+      values = graph_params$line$color)
 }
 
 
@@ -249,7 +251,7 @@ eib_plot_plotly <- function(he,
   legend_list <- list(orientation = "h", xanchor = "center", x = 0.5)
   
   if (is.character(alt.legend))
-    legend_list = switch(
+    legend_list <- switch(
       alt.legend,
       "left" = list(orientation = "v", x = 0, y = 0.5),
       "right" = list(orientation = "v", x = 0, y = 0.5),

@@ -54,7 +54,7 @@ ceac_plot_base.bcea <- function(he,
 #' 
 #' @inheritParams ceac_plot_graph
 #' @param ceac `ceac` index in `he`
-#' @keywords hplot
+#' @keywords internal hplot
 #' @importFrom graphics matplot legend
 #' 
 ceac_matplot <- function(he,
@@ -110,7 +110,8 @@ ceac_plot_ggplot.bcea <- function(he,
 
 #' @rdname ceac_plot_graph
 #' @param ceac ceac index in he
-#' @keywords hplot
+#' @importFrom scales label_dollar
+#' @keywords internal hplot
 #' 
 ceac_ggplot <- function(he,
                         pos_legend,
@@ -135,18 +136,24 @@ ceac_ggplot <- function(he,
   
   ggplot(data_psa, aes(.data$k, .data$ceac)) +
     geom_line(aes(linetype = .data$comparison,
+                  size = .data$comparison,
                   colour = factor(.data$comparison))) +
     theme_ceac() + 
     theme_add +                                            # theme
     scale_y_continuous(limits = c(0, 1)) +
+    scale_x_continuous(
+      labels = scales::label_dollar(prefix = graph_params$currency)) +
     do.call(labs, graph_params$annot) +                    # text
     do.call(theme, legend_params) +                        # legend
     scale_linetype_manual("",                              # lines
-                          labels = graph_params$plot$labels,
-                          values = graph_params$plot$line$types) +
+                          labels = graph_params$labels,
+                          values = graph_params$line$type) +
     scale_color_manual("",
-                       labels = graph_params$plot$labels,  # colours
-                       values = graph_params$plot$line$colors)
+                       labels = graph_params$labels,
+                       values = graph_params$line$color) +
+    scale_size_manual("",
+                      labels = graph_params$labels,
+                      values = graph_params$line$size)
 }
 
 
@@ -160,8 +167,8 @@ ceac_plot_plotly <- function(he,
     paste0(he$interventions[he$ref]," vs ",he$interventions[he$comp])
   
   data.psa <- data.frame(
-    k = c(he$k),
-    ceac = c(he$ceac),
+    k = he$k,
+    ceac = he$ceac,
     comparison = as.factor(c(
       sapply(1:he$n_comparisons, function(x) rep(x, length(he$k)))
     )),
@@ -170,7 +177,7 @@ ceac_plot_plotly <- function(he,
     )))
   
   if (is.null(graph_params$line$types))
-    graph_params$line$types <- rep_len(1:6, he$n_comparisons)
+    graph_params$line$type <- rep_len(1:6, he$n_comparisons)
   
   # opacities
   if (!is.null(graph_params$area$color))
@@ -184,16 +191,16 @@ ceac_plot_plotly <- function(he,
   ceac <-
     plotly::add_trace(
       ceac,
-      y = ~ceac,
+      y = ~ ceac,
       type = "scatter",
       mode = "lines",
       fill = ifelse(graph_params$area$include, "tozeroy", "none"),
-      name = ~label,
+      name = ~ label,
       fillcolor = graph_params$area$color,
-      color = ~comparison,
-      colors = graph_params$plot$line$colors,
-      linetype = ~comparison,
-      linetypes = graph_params$line$types)
+      color = ~ comparison,
+      colors = graph_params$line$color,
+      linetype = ~ comparison,
+      linetypes = graph_params$line$type)
   
   legend_params <- make_legend_plotly(pos_legend)
   

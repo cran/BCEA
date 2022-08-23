@@ -8,6 +8,7 @@
 #' @param k e or c? 1 or 2.
 #' @param l Columns of (e,c) to keep
 #' @seealso \code{\link{evppi}}
+#' @keywords internal
 #' 
 prep.x <- function(he,
                    seq_rows,
@@ -34,6 +35,7 @@ prep.x <- function(he,
 #' 
 #' @importFrom stats update
 #' @seealso \code{\link{evppi}}
+#' @keywords internal
 #' 
 fit.gam <- function(parameter,
                     inputs,
@@ -70,6 +72,7 @@ fit.gam <- function(parameter,
 #' 
 #' @importFrom stats dist dnorm
 #' @seealso \code{\link{evppi}}
+#' @keywords internal
 #' 
 post.density <- function(hyperparams,
                          parameter,
@@ -121,7 +124,8 @@ post.density <- function(hyperparams,
 #' 
 #' @importFrom stats optim
 #' @seealso \code{\link{evppi}}
-#'  
+#' @keywords internal
+#' 
 estimate.hyperparams <- function(x,
                                  input.matrix,
                                  parameter,
@@ -158,6 +162,7 @@ estimate.hyperparams <- function(x,
 #' @return list
 #' @importFrom stats dist
 #' @seealso \code{\link{evppi}}
+#' @keywords internal
 #' 
 fit.gp <- function(parameter,
                    inputs,
@@ -230,12 +235,12 @@ fit.gp <- function(parameter,
 #' @param l l
 #' @return list
 #' @seealso \code{\link{evppi}}
+#' @importFrom cli cli_alert_warning
+#' @keywords internal
 #'
 make.proj <- function(parameter,
                       inputs,
-                      x,
-                      k,
-                      l) {
+                      x, k, l) {
   tic <- proc.time()
   scale <- 8 / (range(x)[2] - range(x)[1])
   scale.x <- scale * x - mean(scale * x)
@@ -296,12 +301,12 @@ make.proj <- function(parameter,
   
   if (dim.d > 2){
     cur <- c("effects", "costs")
-    warning(
-      paste(
-        "The dimension of the sufficient reduction for the incremental",
-        cur[k], ", column", l, ", is", dim.d,
-        ".Dimensions greater than 2 imply that the EVPPI approximation using INLA may be inaccurate.
-        Full residual checking using diag.evppi is required."))
+
+    cli::cli_alert_warning(
+      "The dimension of the sufficient reduction for the incremental
+      {.code cur[k]} column {.code l} is {.code dim.d}.
+      Dimensions greater than 2 imply that the EVPPI approximation using INLA may be inaccurate.
+      Full residual checking using {.fn diag.evppi} is required.")
   }
   names(time) <- "Time to fit find projections (seconds)"
   
@@ -322,6 +327,7 @@ make.proj <- function(parameter,
 #' @importFrom utils select.list
 #' @importFrom grDevices dev.off
 #' @seealso \code{\link{evppi}}
+#' @keywords internal
 #' 
 plot.mesh <- function(mesh, data, plot) {
   
@@ -364,6 +370,7 @@ plot.mesh <- function(mesh, data, plot) {
 #' @param max.edge Maximum edge 
 #' @return list
 #' @seealso \code{\link{evppi}}
+#' @keywords internal
 #' 
 make.mesh <- function(data,
                       convex.inner,
@@ -407,7 +414,9 @@ make.mesh <- function(data,
 #' @param family family 
 #' @return list
 #' @importFrom stats as.formula
+#' 
 #' @seealso \code{\link{evppi}}
+#' @keywords internal
 #' 
 fit.inla <- function(parameter,
                      inputs,
@@ -421,6 +430,10 @@ fit.inla <- function(parameter,
                      max.edge,
                      h.value,
                      family) {
+  # @importFrom INLA inla.stack.data
+  # @importFrom INLA inla.stack.A
+  # @importFrom INLA inla
+
   tic <- proc.time()
   inputs.scale <-
     scale(inputs, apply(inputs, 2, mean), apply(inputs, 2, sd))
@@ -475,7 +488,7 @@ fit.inla <- function(parameter,
     )
   })
   fitted <-
-    (Result$summary.linear.predictor[1:length(x), "mean"] + mean(scale * x)) / scale
+    (Result$summary.linear.predictor[seq_along(x), "mean"] + mean(scale * x)) / scale
   fit <- Result
   toc <- proc.time() - tic
   time <- toc[3]
@@ -495,6 +508,7 @@ fit.inla <- function(parameter,
 #' @param fit.full fit.full
 #' @return list
 #' @seealso \code{\link{evppi}}
+#' @keywords internal
 #'
 compute.evppi <- function(he, fit.full) {
   EVPPI <- array()
@@ -514,10 +528,12 @@ compute.evppi <- function(he, fit.full) {
 
 
 #' Prepare output
+#' 
 #' @param parameters Parameters
 #' @param inputs Inputs
 #' @return name
 #' @seealso \code{\link{evppi}}
+#' @keywords internal
 #'
 prepare.output <- function(parameters,
                            inputs) {

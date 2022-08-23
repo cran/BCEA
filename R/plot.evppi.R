@@ -15,14 +15,18 @@
 #' 
 #' @author Gianluca Baio, Andrea Berardi
 #' @seealso \code{\link{bcea}}, \code{\link{evppi}}
-#' @references
-#' Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London.
+#' @importFrom Rdpack reprompt
 #' 
-#' @keywords "Health economic evaluation" "Expected value of information"
+#' @references
+#' 
+#' \insertRef{Baio2013}{BCEA}
+#' 
+#' @keywords hplot
 #' 
 #' @export
 #' @examples
 #' 
+#' \dontrun{
 #' data(Vaccine, package = "BCEA")
 #' treats <- c("Status quo", "Vaccination")
 #'
@@ -30,14 +34,13 @@
 #' m <- bcea(e.pts, c.pts, ref = 2, interventions = treats)
 #'
 #' # Compute the EVPPI for a bunch of parameters
-#' inp <- createInputs(vaccine)
+#' inp <- createInputs(vaccine_mat)
 #' 
 #' # Compute the EVPPI using INLA/SPDE
 #' x0 <- evppi(m, c("beta.1." , "beta.2."), input = inp$mat)
 #' 
 #' plot(x0, pos = c(0,1))
 #' 
-#' \dontrun{
 #' x1 <- evppi(m, c(32,48,49), input = inp$mat)
 #' plot(x1, pos = "topright")
 #' 

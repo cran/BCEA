@@ -9,11 +9,13 @@
 #' @author Gianluca Baio, Anna Heath and Mark Strong
 #' @seealso \code{\link{bcea}},
 #'          \code{\link{evppi}}
-#' @keywords R2jags
 #' @export
 #'
 createInputs.default <- function(inputs,
                                  print_is_linear_comb = TRUE) {
+  
+  if (!is.logical(print_is_linear_comb))
+    stop("print_is_linear_comb must be logical.", call. = FALSE)
   
   inputs <- inputs[, !colnames(inputs) %in% c("lp__", "deviance")]
   
@@ -147,7 +149,8 @@ createInputs.numeric <- function(inputs,
 
 #' Leave-one-out ranking
 #' @param params Parameters
+#' @keywords internal
 #' 
 loo_rank <- function(params)
-  sapply(1:NCOL(params), function(x) qr(params[, -x])$rank)
+  sapply(seq_len(NCOL(params)), function(x) qr(params[, -x])$rank)
 

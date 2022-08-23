@@ -136,7 +136,7 @@ compute_vi <- function(Ustar, U) {
   vi <- matrix(NA, nrow = n_sim, ncol = K)
   
   for (i in seq_len(K)) {
-    vi[, i] <- Ustar[, i] - max(apply(U[, i, , drop = FALSE], 2, mean))
+    vi[, i] <- Ustar[, i] - max(apply(U[, i, ], 2, mean))
   }
   
   vi
@@ -323,7 +323,8 @@ compute_EVI <- function(ol) {
 
 #' Comparison Names From
 #' @param df_ce Cost-effectiveness dataframe 
-#'
+#' @keywords internal
+#' 
 comp_names_from_ <- function(df_ce) {
   
   df_ce[, c("ref", "ints", "interv_names")] %>%
@@ -349,14 +350,15 @@ compute_ceaf <- function(p_best_interv) {
 #' 
 compute_p_best_interv <- function(he) {
   
+  intervs <- c(he$comp, he$ref)
   p_best_interv <- array(NA,
                          c(length(he$k),
-                           he$n_comparators))
+                           length(intervs)))
   
-  for (i in seq_len(he$n_comparators)) {
+  for (i in seq_along(intervs)) {
     for (k in seq_along(he$k)) {
       
-      is_interv_best <- he$U[, k, ] <= he$U[, k, i]
+      is_interv_best <- he$U[, k, ] <= he$U[, k, intervs[i]]
       
       rank <- apply(!is_interv_best, 1, sum)
       

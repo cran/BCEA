@@ -45,20 +45,21 @@
 #' in a situation of extended dominance.
 #' @author Andrea Berardi, Gianluca Baio
 #' @seealso \code{\link{bcea}}
-#' @references
-#' Baio G. (2012). Bayesian Methods in Health Economics. CRC/Chapman Hall, London.
 #' 
-#' IQWIG (2009). General methods for the Assessment of the Relation of Benefits
-#' to Cost, Version 1.0. IQWIG, November 2009.
-#' @concept "Health economic evaluation" "Multiple comparisons"
+#' @references
+#' \insertRef{Baio2013}{BCEA}
+#' 
+#' \insertRef{IQWIG2009}{BCEA}
+#' 
 #' @importFrom graphics rect abline points legend box
 #' @importFrom grDevices colours
+#' @importFrom Rdpack reprompt
 #' 
 #' @examples
 #' 
 #' ## create the bcea object m for the smoking cessation example
-#' data(Smoking, package = "BCEA")
-#' m <- bcea(e, c, ref = 4, Kmax = 500, interventions = treats)
+#' data(Smoking)
+#' m <- bcea(eff, cost, ref = 4, Kmax = 500, interventions = treats)
 #' 
 #' ## produce plot
 #' ceef.plot(m, graph = "base")
@@ -167,7 +168,7 @@ ceef.plot.bcea <- function(he,
 }
 
 
-#' Cost-Effectiveness Efficiency Frontier (CEAF) Plot
+#' Cost-Effectiveness Efficiency Frontier (CEEF) Plot
 #' 
 #' The line connecting successive points on a cost-effectiveness plane which each
 #' represent the effect and cost associated with different treatment alternatives.
