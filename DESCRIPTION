@@ -1,11 +1,11 @@
 Package: BCEA
 Type: Package
 Title: Bayesian Cost Effectiveness Analysis
-Version: 2.4.2
+Version: 2.4.3
 Authors@R: c(
     person("Gianluca", "Baio",
-            email = "gianluca@stats.ucl.ac.uk",
-            role = c("aut", "cre"),
+            email = "g.baio@ucl.ac.uk",
+            role = c("aut", "cre", "cph"),
             comment = c(ORCID = "0000-0003-4314-2570")),
     person("Andrea", "Berardi",
             email = "a.berardi@ucl.ac.uk",
@@ -26,6 +26,7 @@ Suggests: coda, grid, INLA, knitr, markdown, MCMCvis, mgcv, plotly,
         rjags, rmarkdown, rstan, RColorBrewer, splancs, testthat (>=
         2.1.0), vdiffr, withr
 RdMacros: Rdpack
+VignetteBuilder: knitr
 Additional_repositories: https://inla.r-inla-download.org/R/stable/
 Description: Produces an economic evaluation of a sample of suitable variables of
              cost and effectiveness / utility for two or more interventions,
@@ -38,14 +39,14 @@ URL: https://gianluca.statistica.it/software/bcea/,
         https://gianluca.statistica.it/,
         https://github.com/giabaio/BCEA/
 NeedsCompilation: no
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3.9000
 Encoding: UTF-8
 BugReports: https://github.com/n8thangreen/BCEA/issues/
-Packaged: 2022-08-23 11:44:21 UTC; Nathan
-Author: Gianluca Baio [aut, cre] (<https://orcid.org/0000-0003-4314-2570>),
+Packaged: 2023-05-02 15:56:18 UTC; n8than
+Author: Gianluca Baio [aut, cre, cph] (<https://orcid.org/0000-0003-4314-2570>),
   Andrea Berardi [aut] (<https://orcid.org/0000-0002-2906-496X>),
   Anna Heath [aut] (<https://orcid.org/0000-0002-7263-4251>),
   Nathan Green [aut] (<https://orcid.org/0000-0003-2745-1736>)
-Maintainer: Gianluca Baio <gianluca@stats.ucl.ac.uk>
+Maintainer: Gianluca Baio <g.baio@ucl.ac.uk>
 Repository: CRAN
-Date/Publication: 2022-08-23 13:50:02 UTC
+Date/Publication: 2023-05-02 23:25:40 UTC

@@ -11,9 +11,9 @@ evppi.bcea <- function(he,
                        residuals = TRUE, ...) {
   
   if (is.null(colnames(input))) {
-    colnames(input) <- paste0("theta", 1:dim(input)[2])
+    colnames(input) <- paste0("theta", seq_len(dim(input)[2]))
   }
-  if (is.numeric(param_idx[1]) | is.integer(param_idx[1])) {
+  if (is.numeric(param_idx[1]) || is.integer(param_idx[1])) {
     params <- colnames(input)[param_idx]
   } else {
     params <- param_idx
@@ -67,7 +67,7 @@ evppi.bcea <- function(he,
   
   if (!inherits(extra_args$method, "list")) {
     
-    if (extra_args$method != "sad" & extra_args$method != "so") {
+    if (extra_args$method != "sad" && extra_args$method != "so") {
       if (length(extra_args$method) > 1) {
         extra_args$method <- list(extra_args$method,
                                   extra_args$method)
@@ -515,11 +515,12 @@ evppi.bcea <- function(he,
                 convex.inner = convex.inner,
                 convex.outer = convex.outer,
                 cutoff = cutoff,
-                max.edge = max.edge
-              )
-            plot.mesh(mesh = mesh$mesh,
+                max.edge = max.edge)
+            
+            plot_mesh(mesh = mesh$mesh,
                       data = data,
                       plot = plot)
+            
             if (!suppress.messages) {
               cat("Calculating fitted values for the GP regression using INLA/SPDE \n")
             }
@@ -579,7 +580,7 @@ evppi.bcea <- function(he,
     }
     if (!suppress.messages) cat("Calculating EVPPI \n")
     
-    comp <- compute.evppi(he = he, fit.full = fit.full)
+    comp <- compute_evppi(he = he, fit.full = fit.full)
     
     name <- prepare.output(parameters = params, inputs = inputs)
     
