@@ -12,7 +12,7 @@
 
 > Perform Bayesian Cost-Effectiveness Analysis in R.
 
-:rocket: **Version 2.4.2 out now!** [Check out the release notes here](https://github.com/n8thangreen/BCEA/releases/tag/v2.4.2).
+:rocket: **Version 2.4.3 out now!** [Check out the release notes here](https://github.com/n8thangreen/BCEA/releases/tag/v2.4.3).
 
 ## Contents
 
@@ -34,12 +34,12 @@ Main features of `BCEA` include:
 * EVPPI calculations and plots
 
 ## Installation
-Install the released version from CRAN with
+Install the [released version from CRAN](https://cran.r-project.org/package=BCEA) with
 ```r
 install.packages("BCEA")
 ```
 
-The development version can be installed using this GitHub repository. On Windows machines, you need to install a few dependencies, including [Rtools](https://cran.r-project.org/bin/windows/Rtools/) first, e.g. by running
+The stable version (which can be updated more quickly) can be installed using this GitHub repository. On Windows machines, you need to install a few dependencies, including [Rtools](https://cran.r-project.org/bin/windows/Rtools/) first, e.g. by running
 
 ```r
 pkgs <- c("MASS", "Rtools", "remotes")
@@ -49,13 +49,13 @@ install.packages(pkgs, repos=repos, dependencies = "Depends")
 before installing the package using `remotes`:
 
 ```r
-remotes::install_github("giabaio/BCEA", ref="dev")
+remotes::install_github("giabaio/BCEA")
 ```
 Under Linux or MacOS, it is sufficient to install the package via `remotes`:
 
 ```r
 install.packages("remotes")
-remotes::install_github("giabaio/BCEA", ref="dev")
+remotes::install_github("giabaio/BCEA")
 ```
 
 ## Articles
