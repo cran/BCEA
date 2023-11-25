@@ -1,4 +1,4 @@
-## ---- include = FALSE---------------------------------------------------------
+## ----include = FALSE----------------------------------------------------------
 knitr::opts_chunk$set(
 collapse = TRUE,
 comment = "#>",
@@ -106,6 +106,18 @@ ceac.plot(he,
           title = "my title",
           line = list(color = mypalette),
           pos = c(0,1))
+
+## -----------------------------------------------------------------------------
+ceac.plot(he,
+          graph = "ggplot2",
+          title = "my title",
+          line = list(size = 2))
+
+## -----------------------------------------------------------------------------
+ceac.plot(he,
+          graph = "ggplot2",
+          title = "my title",
+          line = list(size = c(1,2,3)))
 
 ## ----echo=FALSE---------------------------------------------------------------
 # create output docs

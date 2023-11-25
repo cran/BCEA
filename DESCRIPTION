@@ -1,7 +1,7 @@
 Package: BCEA
 Type: Package
 Title: Bayesian Cost Effectiveness Analysis
-Version: 2.4.4
+Version: 2.4.5
 Authors@R: c(
     person("Gianluca", "Baio",
             email = "g.baio@ucl.ac.uk",
@@ -19,15 +19,15 @@ Authors@R: c(
             email = "n.green@ucl.ac.uk",
             role = c("aut"),
             comment = c(ORCID = "0000-0003-2745-1736")))
-Imports: cli (>= 3.3.0), dplyr, ggplot2, gridExtra, graphics, MASS,
-        Matrix, MCMCvis, purrr, Rdpack, reshape2, rlang, scales
+Imports: cli (>= 3.3.0), dplyr, ggplot2 (>= 3.4.0), graphics,
+        gridExtra, MASS, Matrix, MCMCvis, purrr, Rdpack, reshape2,
+        rlang, rstan, scales, voi (>= 1.0.1)
 Depends: R (>= 3.5.0)
-Suggests: coda, grid, INLA, knitr, markdown, mgcv, plotly, rjags,
-        rmarkdown, rstan, RColorBrewer, splancs, testthat (>= 2.1.0),
+Suggests: coda, grid, knitr, markdown, mgcv, plotly, plotrix,
+        RColorBrewer, rjags, rmarkdown, splancs, testthat (>= 2.1.0),
         vdiffr, withr
 RdMacros: Rdpack
 VignetteBuilder: knitr
-Additional_repositories: https://inla.r-inla-download.org/R/stable/
 Description: Produces an economic evaluation of a sample of suitable variables of
              cost and effectiveness / utility for two or more interventions,
              e.g. from a Bayesian model in the form of MCMC simulations.
@@ -42,11 +42,12 @@ NeedsCompilation: no
 RoxygenNote: 7.2.3.9000
 Encoding: UTF-8
 BugReports: https://github.com/n8thangreen/BCEA/issues/
-Packaged: 2023-06-05 12:52:42 UTC; Nathan
+LazyData: false
+Packaged: 2023-11-25 10:22:06 UTC; n8than
 Author: Gianluca Baio [aut, cre, cph] (<https://orcid.org/0000-0003-4314-2570>),
   Andrea Berardi [aut] (<https://orcid.org/0000-0002-2906-496X>),
   Anna Heath [aut] (<https://orcid.org/0000-0002-7263-4251>),
   Nathan Green [aut] (<https://orcid.org/0000-0003-2745-1736>)
 Maintainer: Gianluca Baio <g.baio@ucl.ac.uk>
 Repository: CRAN
-Date/Publication: 2023-06-05 14:10:02 UTC
+Date/Publication: 2023-11-25 13:30:02 UTC
