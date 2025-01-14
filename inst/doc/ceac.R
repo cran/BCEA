@@ -53,6 +53,16 @@ ceac.plot(he,
           line = list(color = "green"))
 
 ## -----------------------------------------------------------------------------
+ceac.plot(he, graph = "ggplot2", text = list(size = 20))
+ceac.plot(he, graph = "ggplot2", text = list(size = rel(2)))  # relative scaling, double size
+
+# equivalent but more flexible and direct
+ceac.plot(he, graph = "ggplot2") +
+  theme(axis.text = element_text(size = 18),
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20))
+
+## -----------------------------------------------------------------------------
 ceac.plot(he, pos = FALSE) # bottom right
 ceac.plot(he, pos = c(0, 0))
 ceac.plot(he, pos = c(0, 1))

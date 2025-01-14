@@ -7,7 +7,8 @@
 #'   comparisons together. Any subset of the possible comparisons can be selected
 #'   (e.g., `comparison = c(1,3)` or `comparison = 2`).
 #' @param wtp The value of the willingness to pay parameter. Not used if
-#'   `graph = "base"` for multiple comparisons.
+#'   `graph = "base"` for multiple comparisons. For \pkg{ggplot2} can also provide
+#'   a list of arguments for more options (see below).
 #' @param pos Parameter to set the position of the legend; for a single
 #'   comparison plot, the ICER legend position. Can be given in form of a string
 #'   `(bottom|top)(right|left)` for base graphics and
@@ -23,28 +24,39 @@
 #' @param ...  If `graph = "ggplot2"` and a named theme object is supplied,
 #'   it will be passed to the \pkg{ggplot2} object. The usual ggplot2 syntax is used.
 #'   Additional graphical arguments:
-#'  \itemize{
-#'   \item `label.pos = FALSE`: will place the willingness to pay label in a
-#'   different  position at the bottom of the graph - base and \pkg{ggplot2} only (no
-#'   label in \pkg{plotly}).
-#'   \item `line = list(color)`: a colour specifying the colour of the willingness-to-pay line.
-#'   \item `point = list(color)`: a vector of colours specifying the colour(s) associated
-#'   to the cloud of points. Should be of length 1 or equal to the number of comparisons.
-#'   \item `point = list(size)`: a vector of colours specifying the size(s) of the points.
+#'   
+#' - `label.pos = FALSE`: Places the willingness-to-pay label in a 
+#'   different position at the bottom of the graph. Applies to base and 
+#'   \pkg{ggplot2} only (no label in \pkg{plotly}).
+#' - `line = list(color)`: A colour specifying the colour of the 
+#'   willingness-to-pay line.
+#' - `point = list(color)`: A vector of colours specifying the colour(s) 
+#'   associated with the cloud of points. Should be of length 1 or equal 
+#'   to the number of comparisons.
+#' - `point = list(size)`: A vector specifying the size(s) of the points. 
 #'   Should be of length 1 or equal to the number of comparisons.
-#'   \item `point = list(shape)`: a vector of shapes specifying type(s) of the points.
+#' - `point = list(shape)`: A vector specifying the shape(s) of the points. 
 #'   Should be of length 1 or equal to the number of comparisons.
-#'   \item `icer = list(color)`: a vector of colours specifying the colour(s) of the ICER
-#'   points. Should be of length 1 or equal to the number of comparisons.
-#'   \item `icer = list(size)`: a vector of colours specifying the size(s) of the ICER
-#'   points. Should be of length 1 or equal to the number of comparisons.
-#'   \item `area_include`: logical, include or exclude the cost-effectiveness 
-#'   acceptability area (default is TRUE).
-#'   \item `area = list(color)`: a colour specifying the colour of the cost-effectiveness
-#'   acceptability area.
-#'   \item `currency`: Currency prefix to cost differential values - \pkg{ggplot2} only.
-#'   \item `icer_annot`: Annotate each ICER point with text label - \pkg{ggplot2} only.
-#'  }
+#' - `icer = list(color)`: A vector of colours specifying the colour(s) of 
+#'   the ICER points. Should be of length 1 or equal to the number of comparisons.
+#' - `icer = list(size)`: A vector specifying the size(s) of the ICER points. 
+#'   Should be of length 1 or equal to the number of comparisons.
+#' - `area_include`: Logical. Include or exclude the cost-effectiveness 
+#'   acceptability area (default is `TRUE`).
+#' - `wtp = list(value)`: Equivalent to using `wtp = value` but for when 
+#'   multiple arguments are passed in list form.
+#' - `area = list(color)`: A colour specifying the colour of the 
+#'   cost-effectiveness acceptability area.
+#' - `wtp = list(color)`: A colour specifying the colour of the 
+#'   willingness-to-pay text.
+#' - `wtp = list(size)`: A value specifying the size of the 
+#'   willingness-to-pay text.
+#' - `wtp = list(x=..., y=...)`: Values specifying the x and y coordinates 
+#'   of the willingness-to-pay text.
+#' - `currency`: Currency prefix to cost differential values. Applies to 
+#'   \pkg{ggplot2} only.
+#' - `icer_annot`: Annotates each ICER point with a text label. Applies to 
+#'   \pkg{ggplot2} only.
 #'  
 #' @return If `graph = "ggplot2"` a ggplot object, or if `graph = "plotly"` 
 #'   a plotly object containing the requested plot. Nothing is returned when
@@ -103,7 +115,6 @@ ceplane.plot.bcea <- function(he,
                               pos = c(0, 1),
                               graph = c("base", "ggplot2", "plotly"),
                               ...) {
-  
   graph <- match.arg(graph)
   
   he <- setComparisons(he, comparison)
@@ -120,7 +131,6 @@ ceplane.plot.bcea <- function(he,
   } else if (is_ggplot(graph)) {
     
     ceplane_plot_ggplot(he,
-                        wtp,
                         pos_legend = pos,
                         graph_params, ...)
     

@@ -93,7 +93,7 @@ plot(bcea_smoke, graph = "ggplot", pos = "left")
 plot(bcea_smoke, graph = "ggplot", pos = "right")
 
 ## ----eval=FALSE, echo=FALSE---------------------------------------------------
-#  # create output docs
-#  rmarkdown::render(input = "vignettes/ceac.Rmd", output_format = "pdf_document", output_dir = "vignettes")
-#  rmarkdown::render(input = "vignettes/ceac.Rmd", output_format = "html_document", output_dir = "vignettes")
+# # create output docs
+# rmarkdown::render(input = "vignettes/ceac.Rmd", output_format = "pdf_document", output_dir = "vignettes")
+# rmarkdown::render(input = "vignettes/ceac.Rmd", output_format = "html_document", output_dir = "vignettes")
 
