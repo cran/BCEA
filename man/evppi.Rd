@@ -168,7 +168,7 @@ use GAM if the number of parameters is <5 and INLA otherwise.
 \dontrun{
 # Load the post-processed results of the MCMC simulation model
 # original JAGS output is can be downloaded from here
-# https://gianluca.statistica.it/book/bcea/code/vaccine.RData
+# https://gianluca.statistica.it/books/bcea/code/vaccine.RData
 
 data(Vaccine, package = "BCEA")
 treats <- c("Status quo", "Vaccination")
@@ -221,12 +221,6 @@ inp <- createInputs(smoking_output)
 EVPPI <- BCEA::evppi(m, c(2,3), inp$mat, h.value = 0.0000005)
 plot(EVPPI)
 }
-
-data(Vaccine, package = "BCEA")
-treats <- c("Status quo", "Vaccination")
-bcea_vacc <- bcea(e.pts, c.pts, ref = 2, interventions = treats)
-inp <- createInputs(vaccine_mat)
-BCEA::evppi(bcea_vacc, c("beta.1.", "beta.2."), inp$mat)
 
 }
 \references{

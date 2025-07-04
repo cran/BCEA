@@ -16,8 +16,8 @@
 #' [ceplane.plot()].
 #' @template args-pos
 #' @param graph A string used to select the graphical engine to use for
-#' plotting. Should (partial-)match the two options `"base"` or
-#' `"ggplot2"`. Default value is `"base"`.
+#' plotting. Should (partial-)match the options `"base"`,
+#' `"ggplot2"` or `"plotly"`. Default value is `"base"`.
 #' @param ...  Arguments to be passed to the methods [ceplane.plot()]
 #' and [eib.plot()]. Please see the manual pages for the individual
 #' functions.  Arguments like `size`, `ICER.size` and `plot.cri`
@@ -87,14 +87,11 @@ plot.bcea <- function(x,
                       comparison = NULL,
                       wtp = 25000,
                       pos = FALSE,
-                      graph = c("base", "ggplot2"),
+                      graph = c("base", "ggplot2", "plotly"),
                       ...) {
   
-  ##TODO: where should this be used?
-  # named_args <- c(as.list(environment()), list(...))
   
   graph <- match.arg(graph)
-  use_base_graphics <- pmatch(graph, c("base", "ggplot2")) != 2
   extra_args <- list(...)
   
   # consistent colours across plots
@@ -103,7 +100,7 @@ plot.bcea <- function(x,
       extra_args$line$color <- extra_args$point$color   
     }}
   
-  if (use_base_graphics) {
+  if (is_baseplot(graph)) {
     withr::with_par(list(mfrow = c(2,2)), {
       ceplane.plot(x,
                    comparison = comparison,
@@ -127,7 +124,7 @@ plot.bcea <- function(x,
       evi.plot(x,
                graph = "base", ...)
     })
-  } else {
+  } else if (is_ggplot(graph)) {
     
     is_req_pkgs <- unname(sapply(c("ggplot2", "grid"),
                                  requireNamespace, quietly = TRUE))
@@ -146,41 +143,15 @@ plot.bcea <- function(x,
     
     if (all(is_req_pkgs)) {
       
-      default_params <- 
-        list(text = element_text(size = 9),
-             legend.key.size = grid::unit(0.5, "lines"),
-             legend.spacing = grid::unit(-1.25, "line"),
-             panel.grid = element_blank(),
-             legend.key = element_blank(),
-             plot.title = element_text(
-               lineheight = 1,
-               face = "bold",
-               size = 11.5,
-               hjust = 0.5))
+      updated_args <- update_theme_args(extra_args)
       
-      keep_param <-
-        names(default_params)[names(default_params) %in% names(extra_args)]
-      
-      extra_params <- extra_args[keep_param]
-      
-      global_params <-
-        modifyList(default_params,
-                   extra_params,
-                   keep.null = TRUE)
-      
-      theme_add <- Filter(f = \(val) ggplot2::is.theme(val), x = extra_args)
-      
-      ceplane.pos <- ifelse(pos, pos, c(1, 1.025))
-      
-      ##TODO: warnings...
       ceplane <-
         ceplane.plot(x,
                      wtp = wtp,
-                     pos = ceplane.pos,
+                     pos = pos,
                      comparison = comparison,
-                     graph = "ggplot2", ...) +
-        do.call(theme, global_params) +
-        theme_add
+                     graph = "ggplot2", ...) + 
+        do.call(ggplot2::theme, updated_args)
       
       eib <-
         do.call(eib.plot,
@@ -189,8 +160,7 @@ plot.bcea <- function(x,
                   comparison = comparison,
                   graph = "ggplot2",
                   extra_args)) +
-        do.call(theme, global_params) +
-        theme_add
+        do.call(ggplot2::theme, updated_args)
       
       ceac <-
         do.call(ceac.plot,
@@ -198,18 +168,81 @@ plot.bcea <- function(x,
                   pos = pos,
                   comparison = comparison,
                   graph = "ggplot2",
-                  extra_args)) +
-        do.call(theme, global_params) +
-        theme_add
+                  extra_args)) + 
+        do.call(ggplot2::theme, updated_args)
       
       evi <-
-        evi.plot(x, graph = "ggplot2", ...) +
-        do.call(theme, global_params) +
-        theme_add
+        evi.plot(x, graph = "ggplot2", ...) + 
+        do.call(ggplot2::theme, updated_args)
       
       multiplot(list(ceplane, ceac, eib, evi),
                 cols = 2)
     }
+  } else if (is_plotly(graph)) {
+    
+    extract_plotly_title = function(p) {
+      if (exists("layoutAttrs", p$x)) {
+        return(p$x$layoutAttrs[[1]]$title)
+      } else if (exists("layout", p$x)) {
+        return(p$x$layout$title)
+      } else {
+        message("Plotly title not found in extract_plotly_title()")
+        return("Plotly title not found")
+      }
+    }
+    
+    p1 <- ceplane.plot(x, graph = "plotly", wtp = wtp, ...)
+    p2 <- eib.plot(x, graph = "plotly", ...)
+    p3 <- ceac.plot(x, graph = "plotly", ...)
+    p4 <- evi.plot(x, graph = "plotly", ...)
+    
+    ppp <- plotly::subplot(
+      p1, p2, p3, p4, nrows = 2,
+      titleX = TRUE, titleY = TRUE, margin = 0.1)
+    
+    annotations <- list(
+      list(
+        x = 0.2, y = 1.0,
+        text = extract_plotly_title(p1),
+        xref = "paper",
+        yref = "paper",
+        xanchor = "center",
+        yanchor = "bottom",
+        showarrow = FALSE
+      ),
+      list(
+        x = 0.8, y = 1.0,
+        text = extract_plotly_title(p2),
+        xref = "paper",
+        yref = "paper",
+        xanchor = "center",
+        yanchor = "bottom",
+        showarrow = FALSE
+      ),
+      list(
+        x = 0.2, y = 0.4,
+        text = extract_plotly_title(p3),
+        xref = "paper",
+        yref = "paper",
+        xanchor = "center",
+        yanchor = "bottom",
+        showarrow = FALSE
+      ),
+      list(
+        x = 0.8, y = 0.4,
+        text = extract_plotly_title(p4),
+        xref = "paper",
+        yref = "paper",
+        xanchor = "center",
+        yanchor = "bottom",
+        showarrow = FALSE
+      )
+    )
+    
+    ppp <-
+      layout(ppp, annotations = annotations, title = "")
+    
+    return(ppp)
   }
 }
 
