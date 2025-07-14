@@ -1,6 +1,6 @@
-a4bb9909ccf8f304b0855c3da51aecd4 *DESCRIPTION
+9c0d88563aacdeecd1dfdc4458e5b53b *DESCRIPTION
 b3d4166dddfae4b3ca0e294abde39c9a *NAMESPACE
-9bdfa8e7fdfc0ab9b6b39b52ad61533e *NEWS.md
+121d1232d497f16329cd652aebe7a67b *NEWS.md
 1721c6425aac38629682b3d9ca600a63 *R/BCEA-deprecated.R
 f4383b61851d858d2c14fae876347618 *R/BCEA-package.R
 3c3ac21a598d1a3e26f49fbd8c8e9373 *R/CEriskav.R
@@ -21,7 +21,7 @@ d4302042be4cd412e33d052b13ba16d6 *R/bf.R
 e5047b10639b54d3114e234ff27edcc9 *R/ce_table.R
 8d36fc7e62644c8fd8fecd0ff12ad4ef *R/ceac.plot.R
 f7abc0b0ace173e2d9f7c0193dc70066 *R/ceac_boot.R
-66730b00da2f847a6e1da65558cfdcc1 *R/ceac_plot_graph.R
+b17840326e1a9e9ffa744ecc7c843dca *R/ceac_plot_graph.R
 c83d8f428d2b9353fc0adb17e2671bd0 *R/ceaf.plot.R
 da6a5f2acad8b61f69e947d045add36e *R/ceef.plot.R
 8cc59c91546a204aaf3520a78657f653 *R/ceef.summary.R
@@ -34,7 +34,7 @@ b2473a362c664e85095c5adc2e694e5b *R/ceplane_geom_params.R
 3eb7fa7b3bc6d9aa9ea0f8dcd3c401b1 *R/ceplane_legend_manual.R
 783f9bab1e6d7873a89018d96f91052b *R/ceplane_plot_graph.R
 0ae1dfa465b9b9b44c887dc81f46ea11 *R/compute_eib_cri.R
-03101c51fde7c3a75f04ce8b64899a7d *R/compute_xxx.R
+4acb62b5d12fa7e36da5bf046606dee9 *R/compute_xxx.R
 a4f1193e7f60954b03deb0ef420d0e71 *R/contour.R
 8ca7c85519aef62aa18ba69942031398 *R/contour2.R
 d6c5b74d1a059b7860af8fd738c9fa7e *R/contour_ggplot_params.R
@@ -82,7 +82,7 @@ af117cd95caf2b9f80ffe03c9534773f *R/make_legend_plotly.R
 30a18ba5ac6e117aa2d4f99cc27e1f49 *R/misc_helpers.R
 51439112b5e226b5f20a9991fe18488b *R/mixedAn.R
 dac88a3da5d8042c1deda801c8e74ead *R/mixedAn.default.R
-ce932c2790ea37493bc9fb5dcdfb7f48 *R/multi.ce.R
+72f167fb18ed368f61f917de711940b6 *R/multi.ce.R
 bd2ae388f928314b2e5617f7f7043dfb *R/multiplot.R
 0425cd7c678735b256d3a8c77d9a71ef *R/new_bcea.R
 22927de13249197b2f91e094b49870b5 *R/num_lines.R
@@ -107,13 +107,13 @@ e929e4f67c20df784f3208d5c36a1150 *R/prepare_ceac_params_multi.R
 ba47a8472eb42ded8b09e923d162103f *R/struct.psa.R
 1f8a3ef8c099e1d887d2a2fcb69a61f6 *R/summary.bcea.R
 6dc63f357c7daf536f593236f76814af *R/summary.mixedAn.R
-0c5c89df730a5117a2c710e854a9163f *R/summary.pairwise.R
+7245d4ad0a546d5f56358f83a2dbac89 *R/summary.pairwise.R
 3f89ce939e35676d87ae657bd8472c94 *R/themes_ggplot.R
 afde75080c74a8b19e7356ff00d890d2 *R/update_theme_args.R
 8bef01a0ecc3cb091e9ac37b67c37856 *R/validate_bcea.R
 5182025ee79f0ac86bca5c77eb09b10e *R/xy_params.R
-cccbb4c5a87c560ed99f2af615bd3184 *R/zzz.R
-68cefb8f924b3425cb6425fbfe0a3ee4 *build/partial.rdb
+e4bfa44f397a512de68760712029cf67 *R/zzz.R
+f7945b92cf20544ca80a09c2ca4ca4db *build/partial.rdb
 a0f03adf916906335c87166cbb5a1b94 *build/vignette.rds
 7b1ad8f9de21d9afdac30e21508aa665 *data/Smoking.RData
 3ea5bab5216d24cf21988839595a1e18 *data/Vaccine.RData
@@ -136,7 +136,7 @@ b426850b2ae0295fe6636a2dc0409e63 *inst/rmarkdown/report/report.Rmd
 eff4ff7b25595542c12ffafe4b909e2a *inst/rmarkdown/report/section_InfoRank.Rmd
 b672afc2d192f9d0be29ce9bf60cad35 *inst/rmarkdown/report/section_ceplane.Rmd
 b5e5cae648c0b1b830ba099bf192a989 *man/BCEA-deprecated.Rd
-40ff4aca44968a5bcd5479b8623c1710 *man/BCEA-package.Rd
+b757cc876dc92fd911963789ef0cee2b *man/BCEA-package.Rd
 b2195d49b2f3ecba270a52366b7aa5c8 *man/CEriskav_assign.Rd
 4c1cb41ab4db69a8b98cfbe09711e583 *man/CEriskav_plot_graph.Rd
 1de2c62b46296760c15ada6dbaad19d2 *man/GrassmannOptim.Rd
